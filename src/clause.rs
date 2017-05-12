@@ -6,14 +6,12 @@ trait Clause {
 }
 
 #[derive(Debug)]
-pub struct TwoPointerClause {
-
-}
+pub struct TwoPointerClause {}
 
 #[derive(Debug)]
-enum ClauseState<'a>{
+enum ClauseState<'a> {
     Open,
     Unit(&'a literal::SimpleLiteral),
     Satisfied,
-    Filled
+    Filled,
 }

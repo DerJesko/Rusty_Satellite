@@ -5,5 +5,3 @@ mod literal;
 fn main() {
     println!("I'm a Rustaman");
 }
-
-
