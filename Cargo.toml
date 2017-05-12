@@ -1,0 +1,6 @@
+[package]
+name = "satsolve"
+version = "0.1.0"
+authors = ["jesko <s8jedujm@stud.uni-saarland.de>"]
+
+[dependencies]
