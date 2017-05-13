@@ -1,4 +1,4 @@
-mod sat;
+mod formula;
 mod clause;
 mod literal;
 
