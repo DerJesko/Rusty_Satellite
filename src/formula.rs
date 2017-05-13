@@ -19,7 +19,7 @@ pub trait Formula {
     ///         None means the variable evaluates to "unassigned"
     fn choose(&mut self, variable: usize, assignment: Option<bool>);
 
-    /// sets the Literal which makes the clause unit to the expected value and returns this Assignment
+    /// sets the variable which makes the clause unit to the expected value and
     /// returns the variable which was assigned and the bool value to which it was assigned
     fn chooseUnit(&mut self, clauseIndex: usize)->(usize, bool);
 
