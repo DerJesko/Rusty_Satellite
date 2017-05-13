@@ -1,6 +1,6 @@
 use literal;
 
-trait Clause {
+pub trait Clause {
     fn new(&Vec<literal::SimpleLiteral>) -> Self;
     fn clause_state(&self, assignments: &mut Vec<Option<bool>>) -> ClauseState;
 }
@@ -9,9 +9,9 @@ trait Clause {
 pub struct TwoPointerClause {}
 
 #[derive(Debug)]
-enum ClauseState<'a> {
+pub enum ClauseState {
     Open,
-    Unit(&'a literal::SimpleLiteral),
+    Unit(literal::SimpleLiteral),
     Satisfied,
     Filled,
 }

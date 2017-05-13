@@ -1,6 +1,6 @@
 use std::vec::Vec;
 
-trait Literal {
+pub trait Literal {
     fn value(&self) -> usize;
     fn is_satisfied(&self, variables: &Vec<Option<bool>>) -> bool;
 }

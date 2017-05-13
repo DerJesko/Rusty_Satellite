@@ -2,7 +2,7 @@ use clause;
 use std::vec::Vec;
 use std::collections::LinkedList;
 
-trait Formula {
+pub trait Formula {
     /// this method creates a sat instance which contains a list of clauses and "variable_amount"
     /// of unassigned continually enumerated variables
     fn new(variable_amount: usize, clauses: &mut LinkedList<&clause::TwoPointerClause>) -> Self;
@@ -32,12 +32,12 @@ trait Formula {
 }
 
 #[derive(Debug)]
-pub struct FormulaInstance<'a> {
-    assignments: &'a mut Vec<Option<bool>>,
-    clauses: &'a mut LinkedList<&'a clause::TwoPointerClause>,
+pub struct FormulaInstance {
+    assignments: Vec<Option<bool>>,
+    clauses: LinkedList< clause::TwoPointerClause>,
 }
 
-enum FormulaState {
+pub enum FormulaState {
     Conflict(usize),
     Unit(usize),
     Else,
