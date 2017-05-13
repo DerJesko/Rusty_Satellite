@@ -28,7 +28,7 @@ trait Formula {
     /// wherein x the index of a unit clause is.
     ///
     /// else it will return Else
-    fn sat_state(&self) -> SatState;
+    fn sat_state(&self) -> FormulaState;
 }
 
 #[derive(Debug)]
