@@ -20,7 +20,8 @@ pub trait Formula {
     fn choose(&mut self, variable: usize, assignment: Option<bool>);
 
     /// sets the Literal which makes the clause unit to the expected value and returns this Assignment
-    fn chooseUnit(&mut self, clauseIndex: usize)->literal::Asignment;
+    /// returns the variable which was assigned and the bool value to which it was assigned
+    fn chooseUnit(&mut self, clauseIndex: usize)->(usize, bool);
 
     /// this method returns the current state of the sat instance
     /// the priority is: Conflict > Unit > Else
