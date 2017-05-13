@@ -10,3 +10,9 @@ pub enum SimpleLiteral {
     Positive(usize),
     Negative(usize),
 }
+
+#[derive(Clone, Debug)]
+pub enum Asignment {
+    True(usize),
+    False(usize)
+}

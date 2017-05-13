@@ -20,6 +20,19 @@ pub enum StackElem{
     Chosen(SimpleLiteral)
 }
 
+impl CdClInstance{
+
+    fn unitPropagation(&mut self){
+        /*while true {
+            match self.formula.sat_state() {
+                FormulaState::Unit(clauseIndex) => self.formula.chooseUnit(clauseIndex),
+                FormulaState::Conflict(clauseIndex) => return clauseIndex,
+                FormulaState::Else => return 0
+            }
+        }*/
+    }
+}
+
 impl CdCl for CdClInstance{
     fn new(initialFormula: FormulaInstance)->Self{
         return CdClInstance{formula: initialFormula, stack: vec![]};
@@ -27,7 +40,5 @@ impl CdCl for CdClInstance{
     fn sat()->bool{
         return true;
     }
-
-
 
 }

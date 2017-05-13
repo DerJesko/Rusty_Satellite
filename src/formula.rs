@@ -1,4 +1,5 @@
 use clause;
+use literal;
 use std::vec::Vec;
 use std::collections::LinkedList;
 
@@ -17,6 +18,9 @@ pub trait Formula {
     /// e.g.    Some(true) means the variable evaluates to 1
     ///         None means the variable evaluates to "unassigned"
     fn choose(&mut self, variable: usize, assignment: Option<bool>);
+
+    /// sets the Literal which makes the clause unit to the expected value and returns this Assignment
+    fn chooseUnit(&mut self, clauseIndex: usize)->literal::Asignment;
 
     /// this method returns the current state of the sat instance
     /// the priority is: Conflict > Unit > Else
