@@ -11,18 +11,18 @@ impl Clause for TwoPointerClause {
         TwoPointerClause{
             pointer: (0,{if literal_list.len() > 1 { 1 } else { 0 }}),
             literals: literal_list,
-            state: ClauseState::Open
+            satisfied: false
         }
     }
 
     fn clause_state(&mut self, assignments: &Vec<Option<bool>>) -> ClauseState {
-        if let ClauseState::Satisfied = self.state {
+        if self.satisfied {
             return ClauseState::Satisfied;
         }
 
         let (mut pointer_1, mut pointer_2) = self.pointer;
         if self.literals[pointer_1].is_satisfied(assignments) | self.literals[pointer_2].is_satisfied(assignments) {
-            self.state = ClauseState::Satisfied;
+            self.satisfied = true;
             return ClauseState::Satisfied;
         }
 
@@ -73,7 +73,7 @@ impl Clause for TwoPointerClause {
 #[derive(Debug)]
 pub struct TwoPointerClause {
     literals: Vec<SimpleLiteral>,
-    state: ClauseState,
+    satisfied: bool,
     pointer: (usize,usize)
 }
 
@@ -81,6 +81,6 @@ pub struct TwoPointerClause {
 pub enum ClauseState {
     Open,
     Unit(usize),
-    Satisfied,
     Filled,
+    Satisfied
 }

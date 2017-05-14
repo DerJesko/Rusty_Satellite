@@ -1,15 +1,17 @@
 use clause;
-use literal;
 use std::vec::Vec;
 use std::collections::LinkedList;
 
 pub trait Formula {
     /// this method creates a sat instance which contains a list of clauses and "variable_amount"
     /// of unassigned continually enumerated variables
-    fn new(variable_amount: usize, clauses: &mut LinkedList<&clause::TwoPointerClause>) -> Self;
+    /// This has a few assumptions, please check them before using:
+    /// - the variables mention in "clauses" are in the interval [0,variable_amount)
+    /// - there are no empty clauses
+    fn new(variable_amount: usize, clauses: LinkedList<clause::TwoPointerClause>) -> Self;
 
     /// this method adds a clause to the end of the list
-    fn add_clause(&mut self, &mut clause::TwoPointerClause);
+    fn add_clause(&mut self, clause::TwoPointerClause);
 
     /// this method removes the clause of index "clause_index" from the list of clauses
     fn remove_clause(&mut self, clause_index: usize);
@@ -33,7 +35,36 @@ pub trait Formula {
     /// wherein x the index of a unit clause is.
     ///
     /// else it will return Else
-    fn sat_state(&self) -> FormulaState;
+    fn sat_state(&mut self) -> FormulaState;
+}
+
+impl Formula for FormulaInstance {
+    fn new(variable_amount: usize, clauses: LinkedList<clause::TwoPointerClause>) -> FormulaInstance {
+        FormulaInstance {
+            clauses: clauses,
+            assignments: vec![None; variable_amount]
+        }
+    }
+
+    fn add_clause(&mut self, clause: clause::TwoPointerClause) {
+        self.clauses.push_back(clause);
+    }
+
+    fn remove_clause(&mut self, clause_index: usize) {
+        panic!(); //TODO implement
+    }
+
+    fn choose(&mut self, variable: usize, assignment: Option<bool>) {
+        panic!(); //TODO implement
+    }
+
+    fn chooseUnit(&mut self, clauseIndex: usize) -> (usize,bool) {
+        panic!(); //TODO implement
+    }
+
+    fn sat_state(&mut self) -> FormulaState {
+        panic!(); //TODO implement
+    }
 }
 
 #[derive(Debug)]
