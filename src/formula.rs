@@ -1,6 +1,6 @@
 use clause;
 use std::vec::Vec;
-use std::collections::LinkedList;
+use std::collections::{LinkedList, HashSet};
 
 pub trait Formula {
     /// this method creates a sat instance which contains a list of clauses and "variable_amount"
@@ -8,13 +8,14 @@ pub trait Formula {
     /// This has a few assumptions, please check them before using:
     /// - the variables mention in "clauses" are in the interval [0,variable_amount)
     /// - there are no empty clauses
-    fn new(variable_amount: usize, clauses: LinkedList<clause::TwoPointerClause>) -> Self;
+    fn new(variable_amount: usize, clauses: Vec<clause::TwoPointerClause>) -> Self;
 
     /// this method adds a clause to the end of the list
     fn add_clause(&mut self, clause::TwoPointerClause);
 
-    /// this method removes the clause of index "clause_index" from the list of clauses
-    fn remove_clause(&mut self, clause_index: usize);
+    /// this method removes the clauses of the indices "clauses" from the list of clauses
+    /// since this is in O(|self.clauses|) it is smart to remove multiple clauses at once
+    fn remove_clauses(&mut self, clauses: HashSet<usize>);
 
     /// this method assigns the variable of index "variable" to the "assignment"
     /// e.g.    Some(true) means the variable evaluates to 1
@@ -39,7 +40,7 @@ pub trait Formula {
 }
 
 impl Formula for FormulaInstance {
-    fn new(variable_amount: usize, clauses: LinkedList<clause::TwoPointerClause>) -> FormulaInstance {
+    fn new(variable_amount: usize, clauses: Vec<clause::TwoPointerClause>) -> FormulaInstance {
         FormulaInstance {
             clauses: clauses,
             assignments: vec![None; variable_amount]
@@ -47,10 +48,10 @@ impl Formula for FormulaInstance {
     }
 
     fn add_clause(&mut self, clause: clause::TwoPointerClause) {
-        self.clauses.push_back(clause);
+        self.clauses.push(clause);
     }
 
-    fn remove_clause(&mut self, clause_index: usize) {
+    fn remove_clauses(&mut self, clauses: HashSet<usize>) {
         panic!(); //TODO implement
     }
 
@@ -70,7 +71,7 @@ impl Formula for FormulaInstance {
 #[derive(Debug)]
 pub struct FormulaInstance {
     assignments: Vec<Option<bool>>,
-    clauses: LinkedList< clause::TwoPointerClause>,
+    clauses: Vec<clause::TwoPointerClause>,
 }
 
 pub enum FormulaState {
