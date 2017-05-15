@@ -13,9 +13,8 @@ pub trait Formula {
     /// this method adds a clause to the end of the list
     fn add_clause(&mut self, clause::TwoPointerClause);
 
-    /// this method removes the clauses of the indices "clauses" from the list of clauses
-    /// since this is in O(|self.clauses|) it is smart to remove multiple clauses at once
-    fn remove_clauses(&mut self, clauses: HashSet<usize>);
+    /// this method removes the clause of the index "remove_index" from the list of clauses
+    fn remove_clauses(&mut self, remove_index:usize);
 
     /// this method assigns the variable of index "variable" to the "assignment"
     /// e.g.    Some(true) means the variable evaluates to 1
@@ -51,8 +50,8 @@ impl Formula for FormulaInstance {
         self.clauses.push(clause);
     }
 
-    fn remove_clauses(&mut self, clauses: HashSet<usize>) {
-        panic!(); //TODO implement
+    fn remove_clauses(&mut self, remove_index: usize) {
+        self.clauses.remove(remove_index);
     }
 
     fn choose(&mut self, variable: usize, assignment: Option<bool>) {
