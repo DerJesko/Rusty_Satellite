@@ -2,7 +2,7 @@ use literal::{Literal, SimpleLiteral};
 
 pub trait Clause {
     fn new(Vec<SimpleLiteral>) -> Self;
-    fn clause_state(&mut self, assignments: &Vec<Option<bool>>) -> ClauseState;
+    fn update_clause_state(&mut self, assignments: &Vec<Option<bool>>);
 }
 
 impl Clause for TwoPointerClause {
@@ -11,19 +11,19 @@ impl Clause for TwoPointerClause {
         TwoPointerClause{
             pointer: (0,{if literal_list.len() > 1 { 1 } else { 0 }}),
             literals: literal_list,
-            satisfied: false
+            state: ClauseState::Open
         }
     }
 
-    fn clause_state(&mut self, assignments: &Vec<Option<bool>>) -> ClauseState {
-        if self.satisfied {
-            return ClauseState::Satisfied;
+    fn update_clause_state(&mut self, assignments: &Vec<Option<bool>>) {
+        if let ClauseState::Satisfied = self.state {
+            return
         }
 
         let (mut pointer_1, mut pointer_2) = self.pointer;
         if self.literals[pointer_1].is_satisfied(assignments) | self.literals[pointer_2].is_satisfied(assignments) {
-            self.satisfied = true;
-            return ClauseState::Satisfied;
+            self.state = ClauseState::Satisfied;
+            return;
         }
 
         let mut amount_of_undefined: u8 = 0;
@@ -57,14 +57,20 @@ impl Clause for TwoPointerClause {
         } else { amount_of_undefined += 1; }
 
         if amount_of_undefined == 2 {
-            return ClauseState::Open;
+            self.state = ClauseState::Open;
+            return;
         } else if amount_of_undefined == 1 {
             if assignments[self.literals[pointer_1].value()] == None {
-                return ClauseState::Unit(pointer_1);
+                self.state = ClauseState::Unit(pointer_1);
+                return;
             } else {
-                return ClauseState::Unit(pointer_2);
+                self.state = ClauseState::Unit(pointer_2);
+                return;
             }
-        } else { return ClauseState::Filled }
+        } else {
+            self.state = ClauseState::Filled;
+            return;
+        }
 
         panic!();
     }
@@ -72,8 +78,8 @@ impl Clause for TwoPointerClause {
 
 #[derive(Debug)]
 pub struct TwoPointerClause {
-    literals: Vec<SimpleLiteral>,
-    satisfied: bool,
+    pub literals: Vec<SimpleLiteral>,
+    pub state: ClauseState,
     pointer: (usize,usize)
 }
 

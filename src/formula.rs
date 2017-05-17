@@ -1,4 +1,5 @@
 use clause;
+use literal;
 use std::vec::Vec;
 use std::collections::{LinkedList, HashSet};
 
@@ -23,6 +24,7 @@ pub trait Formula {
 
     /// sets the variable which makes the clause unit to the expected value and
     /// returns the variable which was assigned and the bool value to which it was assigned
+    /// this assumes the state of the clause is updated
     fn chooseUnit(&mut self, clauseIndex: usize)->(usize, bool);
 
     /// this method returns the current state of the sat instance
@@ -55,22 +57,33 @@ impl Formula for FormulaInstance {
     }
 
     fn choose(&mut self, variable: usize, assignment: Option<bool>) {
-        panic!(); //TODO implement
+        self.assignments[variable] = assignment;
     }
 
     fn chooseUnit(&mut self, clauseIndex: usize) -> (usize,bool) {
-        panic!(); //TODO implement
+        if let clause::ClauseState::Unit(literal_index) = self.clauses[clauseIndex].state {
+            match self.clauses[clauseIndex].literals[literal_index] {
+                literal::SimpleLiteral::Positive(variable_index) => {
+                    self.assignments[variable_index] = Some(true);
+                    return (variable_index,true);
+                }
+                literal::SimpleLiteral::Negative(variable_index) => {
+                    self.assignments[variable_index] = Some(false);
+                    return (variable_index, false);
+                }
+            }
+        } else { panic!("You should not be here") }
     }
 
     fn sat_state(&mut self) -> FormulaState {
-        panic!(); //TODO implement
+        panic!("still waiting for implementation"); //TODO implement
     }
 }
 
 #[derive(Debug)]
 pub struct FormulaInstance {
-    assignments: Vec<Option<bool>>,
-    clauses: Vec<clause::TwoPointerClause>,
+    pub assignments: Vec<Option<bool>>,
+    pub clauses: Vec<clause::TwoPointerClause>,
 }
 
 pub enum FormulaState {
