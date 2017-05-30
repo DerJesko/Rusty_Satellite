@@ -23,9 +23,9 @@ pub trait Formula {
     fn choose(&mut self, variable: usize, assignment: Option<bool>);
 
     /// sets the variable which makes the clause unit to the expected value and
-    /// returns the variable which was assigned and the bool value to which it was assigned
+    /// returns the literal which was assigned
     /// this assumes the state of the clause is updated
-    fn chooseUnit(&mut self, clauseIndex: usize)->(usize, bool);
+    fn chooseUnit(&mut self, clauseIndex: usize)->literal::SimpleLiteral;
 
     /// this method returns the current state of the sat instance
     /// the priority is: Conflict > Unit > Else
@@ -60,16 +60,16 @@ impl Formula for FormulaInstance {
         self.assignments[variable] = assignment;
     }
 
-    fn chooseUnit(&mut self, clauseIndex: usize) -> (usize,bool) {
+    fn chooseUnit(&mut self, clauseIndex: usize) -> literal::SimpleLiteral {
         if let clause::ClauseState::Unit(literal_index) = self.clauses[clauseIndex].state {
             match self.clauses[clauseIndex].literals[literal_index] {
                 literal::SimpleLiteral::Positive(variable_index) => {
                     self.assignments[variable_index] = Some(true);
-                    return (variable_index,true);
+                    return (literal::SimpleLiteral::Positive(variable_index));
                 }
                 literal::SimpleLiteral::Negative(variable_index) => {
                     self.assignments[variable_index] = Some(false);
-                    return (variable_index, false);
+                    return (literal::SimpleLiteral::Negative(variable_index));
                 }
             }
         } else { panic!("You should not be here") }
