@@ -17,6 +17,9 @@ pub trait Formula {
     /// this method removes the clause of the index "remove_index" from the list of clauses
     fn remove_clauses(&mut self, remove_index:usize);
 
+    /// returns true iff there are unassigned variables
+    fn hasUnassignedVars(&mut self) -> bool;
+
     /// this method assigns the variable of index "variable" to the "assignment"
     /// e.g.    Some(true) means the variable evaluates to 1
     ///         None means the variable evaluates to "unassigned"
@@ -49,11 +52,20 @@ impl Formula for FormulaInstance {
     }
 
     fn add_clause(&mut self, clause: clause::TwoPointerClause) {
-        self.clauses.push(clause);
+        self.clauses.push(clause);  //TODO: add clause only if it does not exist already
     }
 
     fn remove_clauses(&mut self, remove_index: usize) {
         self.clauses.remove(remove_index);
+    }
+
+    fn hasUnassignedVars(&mut self) -> bool{
+        for elem in &self.assignments{
+            if elem.is_none() {
+                return true;
+            }
+        }
+        return false;
     }
 
     fn choose(&mut self, variable: usize, assignment: Option<bool>) {
