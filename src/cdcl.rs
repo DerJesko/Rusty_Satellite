@@ -47,19 +47,54 @@ impl CdClInstance{
         return 0;
     }
     
-    fn conflictAnalysis(&mut self, level:usize) -> usize{
-        return 0;
+    /// finds possibly a new clause and adds it to the formula
+    /// returns the level to which one should backtrack (None if the formula is unsatisfiable)
+    fn conflictAnalysis(&mut self, level:usize) -> Option<usize>{
+        //TODO-Sanny: implement
+        //call foundNewClause()
+        return None;
     }
     
     /// adds the clause to the own formula and notifies the other threads that a new clause was found
     fn foundNewClause(&mut self, clause:TwoPointerClause){
-        //add for own formula
+        self.formula.add_clause(clause);
         //share with other threads
     }
     
     /// checks if the channels received new clauses from other threads and adds them
-    fn checkForNewClauses(&mut self){
+    /// returns true if new clauses are found from other threads
+    fn checkChannelsForNewClauses(&mut self) -> bool{
         //check channels for new clauses and add them
+    }
+    
+    /// backtracks until the choice of the passed level
+    fn backtrack(&mut self, level:usize){
+        while !self.stack.is_empty() {
+            match self.stack.pop().unwrap() {
+                StackElem::Chosen(literal, currentLevel) => {
+                    if currentLevel == level {            //backtrack until right level is found
+                        let newLiteral:SimpleLiteral;
+                        match literal {
+                            SimpleLiteral::Negative(variableIndex) => {
+                                newLiteral = SimpleLiteral::Positive(variableIndex);
+                                self.formula.choose(variableIndex, Some(true));
+                            },
+                            SimpleLiteral::Positive(variableIndex) => {
+                                newLiteral = SimpleLiteral::Negative(variableIndex);
+                                self.formula.choose(variableIndex, Some(false));
+                            }
+                        }
+                        self.stack.push(StackElem::Implied(newLiteral, level - 1));
+                        break;
+                    } else {
+                        self.formula.choose(literal.value(), None);  //unassign chosen with wrong level
+                    }
+                },
+                StackElem::Implied(literal, _) => {
+                    self.formula.choose(literal.value(), None);  //unassign implied
+                }
+            }
+        }
     }
     
 }
@@ -83,9 +118,16 @@ impl CdCl for CdClInstance{
             self.formula.choose(chosen.value(), Some(true));
             self.stack.push(StackElem::Chosen(chosen, level));
             level += 1;
-            
+    
+            self.checkChannelsForNewClauses();
             if self.unitPropagation(level).is_none() {  //backtracking (some failure)
-            
+                let returnLevel = self.conflictAnalysis(level);
+                if returnLevel.is_none() {
+                    return false;
+                }
+                level = returnLevel.unwrap();
+                self.backtrack(level);
+                self.unitPropagation(level);
             }
         }
 
