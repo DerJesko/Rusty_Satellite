@@ -93,14 +93,14 @@ impl Clause for TwoPointerClause {
 
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct TwoPointerClause {
     pub literals: Vec<SimpleLiteral>,
     pub state: ClauseState,
     pointer: (usize,usize)
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum ClauseState {
     Open,
     Unit(usize),

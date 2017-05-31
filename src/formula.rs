@@ -74,7 +74,7 @@ impl Formula for FormulaInstance {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FormulaInstance {
     pub assignments: Vec<Option<bool>>,
     pub clauses: HashSet<clause::TwoPointerClause>,
