@@ -1,8 +1,9 @@
 use literal::{Literal, SimpleLiteral};
 
 pub trait Clause {
-    fn new(Vec<SimpleLiteral>) -> Self;
+    fn new(literal_list: Vec<SimpleLiteral>) -> Self;
     fn update_clause_state(&mut self, assignments: &Vec<Option<bool>>);
+    fn chooseUnit(&self, assignments: &mut Vec<Option<bool>>) -> SimpleLiteral;
 }
 
 impl Clause for TwoPointerClause {
@@ -74,16 +75,32 @@ impl Clause for TwoPointerClause {
 
         panic!();
     }
+
+    fn chooseUnit(&self, assignments: &mut Vec<Option<bool>>) -> SimpleLiteral {
+        if let ClauseState::Unit(literal_index) = self.state {
+            match self.literals[literal_index] {
+                SimpleLiteral::Positive(variable_index) => {
+                    assignments[variable_index] = Some(true);
+                    return SimpleLiteral::Positive(variable_index);
+                }
+                SimpleLiteral::Negative(variable_index) => {
+                    assignments[variable_index] = Some(false);
+                    return SimpleLiteral::Negative(variable_index);
+                }
+            }
+        } else { panic!("You should not be here") }
+    }
+
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash, Eq, PartialEq)]
 pub struct TwoPointerClause {
     pub literals: Vec<SimpleLiteral>,
     pub state: ClauseState,
     pointer: (usize,usize)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash, Eq, PartialEq)]
 pub enum ClauseState {
     Open,
     Unit(usize),

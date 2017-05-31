@@ -26,7 +26,7 @@ impl Literal for SimpleLiteral {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub enum SimpleLiteral {
     Positive(usize),
     Negative(usize),

@@ -1,7 +1,7 @@
 use clause;
 use literal;
 use std::vec::Vec;
-use std::collections::{LinkedList, HashSet};
+use std::collections::HashSet;
 
 pub trait Formula {
     /// this method creates a sat instance which contains a list of clauses and "variable_amount"
@@ -9,26 +9,21 @@ pub trait Formula {
     /// This has a few assumptions, please check them before using:
     /// - the variables mention in "clauses" are in the interval [0,variable_amount)
     /// - there are no empty clauses
-    fn new(variable_amount: usize, clauses: Vec<clause::TwoPointerClause>) -> Self;
+    fn new(variable_amount: usize, clauses: HashSet<clause::TwoPointerClause>) -> Self;
 
     /// this method adds a clause to the end of the list
-    fn add_clause(&mut self, clause::TwoPointerClause);
+    fn add_clause(&mut self, clause: clause::TwoPointerClause);
 
     /// this method removes the clause of the index "remove_index" from the list of clauses
-    fn remove_clauses(&mut self, remove_index:usize);
+    fn remove_clause(&mut self, clause_to_remove:&clause::TwoPointerClause);
 
-    /// returns true iff there are unassigned variables
+    /// returns true if there are unassigned variables
     fn hasUnassignedVars(&mut self) -> bool;
 
     /// this method assigns the variable of index "variable" to the "assignment"
     /// e.g.    Some(true) means the variable evaluates to 1
     ///         None means the variable evaluates to "unassigned"
     fn choose(&mut self, variable: usize, assignment: Option<bool>);
-
-    /// sets the variable which makes the clause unit to the expected value and
-    /// returns the literal which was assigned
-    /// this assumes the state of the clause is updated
-    fn chooseUnit(&mut self, clauseIndex: usize)->literal::SimpleLiteral;
 
     /// this method returns the current state of the sat instance
     /// the priority is: Conflict > Unit > Else
@@ -40,11 +35,11 @@ pub trait Formula {
     /// wherein x the index of a unit clause is.
     ///
     /// else it will return Else
-    fn sat_state(&mut self) -> FormulaState;
+    fn form_state(&mut self) -> FormulaState;
 }
 
 impl Formula for FormulaInstance {
-    fn new(variable_amount: usize, clauses: Vec<clause::TwoPointerClause>) -> FormulaInstance {
+    fn new(variable_amount: usize, clauses: HashSet<clause::TwoPointerClause>) -> FormulaInstance {
         FormulaInstance {
             clauses: clauses,
             assignments: vec![None; variable_amount]
@@ -52,11 +47,11 @@ impl Formula for FormulaInstance {
     }
 
     fn add_clause(&mut self, clause: clause::TwoPointerClause) {
-        self.clauses.push(clause);  //TODO: add clause only if it does not exist already
+        self.clauses.insert(clause);
     }
 
-    fn remove_clauses(&mut self, remove_index: usize) {
-        self.clauses.remove(remove_index);
+    fn remove_clause(&mut self, clause_to_remove: &clause::TwoPointerClause) {
+        self.clauses.remove(clause_to_remove);
     }
 
     fn hasUnassignedVars(&mut self) -> bool{
@@ -72,22 +67,9 @@ impl Formula for FormulaInstance {
         self.assignments[variable] = assignment;
     }
 
-    fn chooseUnit(&mut self, clauseIndex: usize) -> literal::SimpleLiteral {
-        if let clause::ClauseState::Unit(literal_index) = self.clauses[clauseIndex].state {
-            match self.clauses[clauseIndex].literals[literal_index] {
-                literal::SimpleLiteral::Positive(variable_index) => {
-                    self.assignments[variable_index] = Some(true);
-                    return (literal::SimpleLiteral::Positive(variable_index));
-                }
-                literal::SimpleLiteral::Negative(variable_index) => {
-                    self.assignments[variable_index] = Some(false);
-                    return (literal::SimpleLiteral::Negative(variable_index));
-                }
-            }
-        } else { panic!("You should not be here") }
-    }
 
-    fn sat_state(&mut self) -> FormulaState {
+
+    fn form_state(&mut self) -> FormulaState {
         panic!("still waiting for implementation"); //TODO implement
     }
 }
@@ -95,11 +77,11 @@ impl Formula for FormulaInstance {
 #[derive(Debug)]
 pub struct FormulaInstance {
     pub assignments: Vec<Option<bool>>,
-    pub clauses: Vec<clause::TwoPointerClause>,
+    pub clauses: HashSet<clause::TwoPointerClause>,
 }
 
 pub enum FormulaState {
-    Conflict(usize),
-    Unit(usize),
+    Conflict(clause::TwoPointerClause),
+    Unit(clause::TwoPointerClause),
     Else,
 }

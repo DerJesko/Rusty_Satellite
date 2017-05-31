@@ -23,13 +23,13 @@ pub enum StackElem{
 impl CdClInstance{
 
     //makes unitPropagation until there is a conflict (returns the clauseIndex) else it returns None
-    fn unitPropagation(&mut self, level:usize) -> Option<usize>{
+    fn unitPropagation(&mut self, level:usize) -> Option<TwoPointerClause>{
         while true {
-            match self.formula.sat_state() {
-                FormulaState::Unit(clauseIndex) => {
-                    self.stack.push(StackElem::Implied(self.formula.chooseUnit(clauseIndex), level));
+            match self.formula.form_state() {
+                FormulaState::Unit(clause) => {
+                    self.stack.push(StackElem::Implied(clause.chooseUnit(&mut self.formula.assignments), level));
                 },
-                FormulaState::Conflict(clauseIndex) => return Some(clauseIndex),
+                FormulaState::Conflict(clause) => return Some(clause),
                 FormulaState::Else => return None
             }
         }
