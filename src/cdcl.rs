@@ -1,18 +1,22 @@
 use formula::*;
 use clause::*;
 use literal::*;
+use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc;
 use std::vec::Vec;
 
 
 pub trait CdCl{
-    fn new(initialFormula: FormulaInstance)->Self;
+    fn new(initialFormula: FormulaInstance, receiver:Option<Receiver<TwoPointerClause>>, senders:Vec<Sender<TwoPointerClause>>)->Self;
     fn sat(&mut self)->bool;
 }
 
 
 pub struct CdClInstance{
     formula: FormulaInstance,
-    stack: Vec<StackElem>
+    stack: Vec<StackElem>,
+    receiver: Option<Receiver<TwoPointerClause>>,
+    senders: Vec<Sender<TwoPointerClause>>
 }
 
 pub enum StackElem{
@@ -20,10 +24,11 @@ pub enum StackElem{
     Chosen(SimpleLiteral, usize)
 }
 
+
 impl CdClInstance{
 
-    //makes unitPropagation until there is a conflict (returns the clauseIndex) else it returns None
     fn unitPropagation(&mut self, level:usize) -> Option<TwoPointerClause>{
+    //makes unitPropagation until there is a conflict (returns the clauseIndex) else it returns None
         while true {
             match self.formula.form_state() {
                 FormulaState::Unit(clause) => {
@@ -37,6 +42,7 @@ impl CdClInstance{
         return None;
     }
 
+    /// chooses the variable which should be tried next (in a Choose-step)
     fn getUnassignedVariable(&mut self) -> usize{
         for i in 0..self.formula.assignments.len(){
             if self.formula.assignments[i]==None {
@@ -57,14 +63,37 @@ impl CdClInstance{
     
     /// adds the clause to the own formula and notifies the other threads that a new clause was found
     fn foundNewClause(&mut self, clause:TwoPointerClause){
-        self.formula.add_clause(clause);
-        //share with other threads
+    
+        for sender in &self.senders {
+            if sender.send(clause.clone()).is_err() {
+                panic!("Could not send clause!");
+            }
+        }
+    
+        self.formula.add_clause(clause);  //can't be added before sending
     }
     
     /// checks if the channels received new clauses from other threads and adds them
     /// returns true if new clauses are found from other threads
-    fn checkChannelsForNewClauses(&mut self) -> bool{
-        //check channels for new clauses and add them
+    fn checkReceiverForNewClauses(&mut self) -> bool{
+        
+        let mut foundFormula = false;
+        if self.receiver.is_none() {
+            return foundFormula;
+        }
+        
+        loop {
+            let ref mut receiver = self.receiver.as_ref().unwrap();
+            match receiver.try_recv() {
+                Ok(clause) => {
+                    self.formula.add_clause(clause);
+                    foundFormula = true;
+                },
+                Err(err) => {
+                    return foundFormula;
+                }
+            }
+        }
     }
     
     /// backtracks until the choice of the passed level
@@ -100,10 +129,13 @@ impl CdClInstance{
 }
 
 impl CdCl for CdClInstance{
-    fn new(initialFormula: FormulaInstance)->Self{
-        return CdClInstance{formula: initialFormula, stack: vec![]};
+    
+    /// Constructor
+    fn new(initialFormula: FormulaInstance, receiver:Option<Receiver<TwoPointerClause>>, senders:Vec<Sender<TwoPointerClause>>)->Self{
+        return CdClInstance{formula: initialFormula, stack: vec!(), receiver: receiver, senders: senders};
     }
 
+    /// checks wether the formula is satisfiable
     fn sat(&mut self)->bool{
 
         //first unitPropagation
@@ -119,7 +151,7 @@ impl CdCl for CdClInstance{
             self.stack.push(StackElem::Chosen(chosen, level));
             level += 1;
     
-            self.checkChannelsForNewClauses();
+            self.checkReceiverForNewClauses();
             if self.unitPropagation(level).is_none() {  //backtracking (some failure)
                 let returnLevel = self.conflictAnalysis(level);
                 if returnLevel.is_none() {
