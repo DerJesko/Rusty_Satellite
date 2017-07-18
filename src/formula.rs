@@ -76,7 +76,9 @@ impl Formula for FormulaInstance {
         let mut return_clause_is_unit: bool = false;
         let mut return_clause_is: bool = false;
         for mut clause in self.clauses.drain() {
+            //println!("{:?}", clause);
             clause.update_clause_state(&self.assignments);
+            //println!("{:?}", clause);
             match clause.state {
                 ClauseState::Open | ClauseState::Satisfied => {
                     if !return_clause_is{
