@@ -34,7 +34,7 @@ impl Clause for TwoPointerClause {
         if let Some(_) = assignments[self.literals[pointer_1].value()] {
             let mut i = 0;
             while i < self.literals.len() {
-                if (i != pointer_2) {
+                if i != pointer_2 {
                     match self.literals[i] {
                         SimpleLiteral::Positive(var) => {
                             match assignments[var] {
@@ -48,9 +48,19 @@ impl Clause for TwoPointerClause {
                                 }
                             }
                         },
-                        SimpleLiteral::Negative(var) => {}
+                        SimpleLiteral::Negative(var) => {
+                            match assignments[var] {
+                                None => { break; }
+                                Some(assigned_bool) => {
+                                    if !assigned_bool {
+                                        self.state = ClauseState::Satisfied;
+                                        pointer_1 = i;
+                                        return;
+                                    }
+                                }
+                            }
+                        }
                     }
-                    break;
                 }
                 i += 1;
             }
@@ -63,8 +73,33 @@ impl Clause for TwoPointerClause {
         if let Some(_) = assignments[self.literals[pointer_2].value()] {
             let mut i = 0;
             while i < self.literals.len() {
-                if (i != pointer_1) & (assignments[self.literals[i].value()] == None) {
-                    break;
+                if i != pointer_1 {
+                    match self.literals[i] {
+                        SimpleLiteral::Positive(var) => {
+                            match assignments[var] {
+                                None => { break; }
+                                Some(assigned_bool) => {
+                                    if assigned_bool {
+                                        self.state = ClauseState::Satisfied;
+                                        pointer_2 = i;
+                                        return;
+                                    }
+                                }
+                            }
+                        },
+                        SimpleLiteral::Negative(var) => {
+                            match assignments[var] {
+                                None => { break; }
+                                Some(assigned_bool) => {
+                                    if !assigned_bool {
+                                        self.state = ClauseState::Satisfied;
+                                        pointer_2 = i;
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 i += 1;
             }
