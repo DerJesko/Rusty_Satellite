@@ -32,6 +32,7 @@ fn main() {
     //let formula = read("simple.cnf");
     //let formula = read("backtrack.cnf");
     //let formula = read("uf20-01.cnf");
+    //let formula = read("uuf50-0100.cnf");
     //println!("Formula: {:?}", formula);
     startSolver(1, formula);
     println!("I'm a Rustaman");
@@ -130,6 +131,7 @@ fn startSolver(threadAmount: usize, formula: FormulaInstance){
         let mut solver = solvers.pop().unwrap();
         threads.push(thread::spawn(move || {
            if solver.sat() {
+               println!("{:?}", solver.formula.assignments);
                println!("thread ({:}) said it is satisfiable!", i);
            } else {
                println!("thread ({:}) said it is unsatisfiable!", i);

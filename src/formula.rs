@@ -75,6 +75,7 @@ impl Formula for FormulaInstance {
         let mut return_clause_is_conflict: bool = false;
         let mut return_clause_is_unit: bool = false;
         let mut return_clause_is: bool = false;
+        
         for mut clause in self.clauses.drain() {
             //println!("{:?}", clause);
             clause.update_clause_state(&self.assignments);
@@ -91,6 +92,7 @@ impl Formula for FormulaInstance {
                         return_clause = clause.clone();
                         return_clause_is = true;
                         return_clause_is_unit = true;
+                        println!("Unit");
                     }
                 },
                 ClauseState::Unsatisfiable => {

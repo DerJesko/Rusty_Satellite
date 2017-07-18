@@ -16,11 +16,10 @@ pub trait CdCl{
 
 
 pub struct CdClInstance{
-    formula: FormulaInstance,
+    pub formula: FormulaInstance,
     stack: Vec<StackElem>,
     receiver: Option<Receiver<TwoPointerClause>>,
-    senders: Vec<Sender<TwoPointerClause>>,
-    learntClause: TwoPointerClause
+    senders: Vec<Sender<TwoPointerClause>>
 }
 
 #[derive (Clone, Debug, Hash, Eq, PartialEq)]
@@ -275,8 +274,7 @@ impl CdCl for CdClInstance{
     
     /// Constructor
     fn new(initialFormula: FormulaInstance, receiver:Option<Receiver<TwoPointerClause>>, senders:Vec<Sender<TwoPointerClause>>)->Self{
-        return CdClInstance{formula: initialFormula, stack: vec!(), receiver: receiver, senders: senders,
-            learntClause: TwoPointerClause::new(vec!())};
+        return CdClInstance{formula: initialFormula, stack: vec!(), receiver: receiver, senders: senders};
     }
 
     /// checks wether the formula is satisfiable
