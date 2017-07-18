@@ -109,7 +109,7 @@ impl Clause for TwoPointerClause {
     }
 
     fn resolute(&mut self, elem: &StackElem) -> TwoPointerClause {
-        let mut clause: TwoPointerClause = CdClInstance::getAntecedent(elem).unwrap().clone();
+        let mut clause: TwoPointerClause = CdClInstance::getAntecedent(elem).unwrap();
 
         let mut index = 0;
         match *elem {
@@ -121,14 +121,11 @@ impl Clause for TwoPointerClause {
         let neg = SimpleLiteral::Negative(index);
 
         for l in &self.literals {
-            clause.literals.push(*l);
+            clause.literals.push(l.clone());
         }
-
-        if clause.literals.contains(&pos) {
-            clause.literals.retain(|x| *x != pos);
-        } else {
-            clause.literals.retain(|x| *x != neg);
-        }
+    
+        clause.literals.retain(|x| *x != pos);
+        clause.literals.retain(|x| *x != neg);  //TODO: funktioniert das retain?
 
         clause
 
