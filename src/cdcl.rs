@@ -4,6 +4,9 @@ use literal::*;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 use std::vec::Vec;
+use self::rand::Rng;
+
+extern crate rand;
 
 
 pub trait CdCl{
@@ -27,9 +30,9 @@ pub enum StackElem{
 
 
 impl CdClInstance{
-
+    
+    ///makes unitPropagation until there is a conflict (returns the clauseIndex) else it returns None
     fn unitPropagation(&mut self, level:usize) -> Option<TwoPointerClause>{
-    //makes unitPropagation until there is a conflict (returns the clauseIndex) else it returns None
         while true {
             match self.formula.form_state() {
                 FormulaState::Unit(clause) => {
@@ -56,7 +59,9 @@ impl CdClInstance{
     
     /// finds possibly a new clause and adds it to the formula
     /// returns the level to which one should backtrack (None if the formula is unsatisfiable)
-    fn conflictAnalysis(&mut self, level:usize) -> Option<usize>{
+    fn conflictAnalysis(&mut self, level:usize) -> Option<(TwoPointerClause,usize)>{
+        return Some((TwoPointerClause::new(vec![]), level-1));
+        /*
         //TODO: UNSAT?
         let mut clause: TwoPointerClause;
         if let FormulaState::Conflict(conflictClause) = self.formula.form_state() {
@@ -87,19 +92,19 @@ impl CdClInstance{
         self.foundNewClause(clause);
 
         return Some(backLevel);
+        */
     }
     
     /// adds the clause to the own formula and notifies the other threads that a new clause was found
-    fn foundNewClause(&mut self, clause:TwoPointerClause){
+    fn foundNewClause(&mut self, clausee:&TwoPointerClause){
     
         for sender in &self.senders {
-            if sender.send(clause.clone()).is_err() {
+            if sender.send(clausee.clone()).is_err() {
                 panic!("Could not send clause!");
             }
         }
 
-        self.learntClause = clause.clone();
-        self.formula.add_clause(clause);  //can't be added before sending
+        self.formula.add_clause(clausee.clone());  //can't be added before sending
     }
     
     /// checks if the channels received new clauses from other threads and adds them
@@ -126,7 +131,7 @@ impl CdClInstance{
     }
     
     /// backtracks until the choice of the passed level
-    fn backtrack(&mut self, level:usize){
+    fn backtrack(&mut self, level:usize, learntClause:TwoPointerClause){
         while !self.stack.is_empty() {
             match self.stack.pop().unwrap() {
                 StackElem::Chosen(literal, currentLevel) => {
@@ -142,7 +147,7 @@ impl CdClInstance{
                                 self.formula.choose(variableIndex, Some(false));
                             }
                         }
-                        self.stack.push(StackElem::Implied(newLiteral, level - 1, self.learntClause));
+                        self.stack.push(StackElem::Implied(newLiteral, level - 1, learntClause));
                         break;
                     } else {
                         self.formula.choose(literal.value(), None);  //unassign chosen with wrong level
@@ -154,7 +159,7 @@ impl CdClInstance{
             }
         }
     }
-
+/*
     fn getImpliedLiteralAtLevel(&self, clause: &TwoPointerClause, literal: &SimpleLiteral, level: usize) -> Option<StackElem> {
         if !clause.literals.contains(&literal) {
             return None;
@@ -191,14 +196,14 @@ impl CdClInstance{
         }
         count
     }
-
+*/
     pub fn getAntecedent(elem: &StackElem) -> Option<TwoPointerClause> {
         match *elem {
-            StackElem::Implied(_, _, antecedent) => return Some(antecedent),
+            StackElem::Implied(_, _, ref antecedent) => return Some(antecedent.clone()),
             _ => return None
         }
     }
-
+/*
     fn getSecondHighestDecisionLevel(&self, clause: &TwoPointerClause) -> usize {
         let mut highest = 0;
         let mut second = 0;
@@ -216,8 +221,8 @@ impl CdClInstance{
     }
 
     fn getDecisionLevel(&self, literal: SimpleLiteral) -> usize {
-        for elem in self.stack {
-            match elem {
+        for elem in &self.stack {
+            match *elem {
                 StackElem::Chosen(lit, d) => {
                     if lit == literal {
                         return d;
@@ -232,7 +237,7 @@ impl CdClInstance{
         }
         panic!("You should not be here!");
     }
-
+*/
 }
 
 impl CdCl for CdClInstance{
@@ -245,7 +250,8 @@ impl CdCl for CdClInstance{
 
     /// checks wether the formula is satisfiable
     fn sat(&mut self)->bool{
-
+        let mut random = rand::thread_rng();
+        
         //first unitPropagation
         if self.unitPropagation(0).is_none() {
             return false;
@@ -254,19 +260,26 @@ impl CdCl for CdClInstance{
         
         while self.formula.hasUnassignedVars() {
             //unitPropagation already done
-            let chosen:SimpleLiteral = SimpleLiteral::Positive(self.getUnassignedVariable());
+            let unassigned = self.getUnassignedVariable();
+            let chosen:SimpleLiteral;
+            if random.gen() {
+                chosen = SimpleLiteral::Positive(unassigned);
+            } else {
+                chosen = SimpleLiteral::Negative(unassigned);
+            }
             self.formula.choose(chosen.value(), Some(true));
             self.stack.push(StackElem::Chosen(chosen, level));
             level += 1;
     
             self.checkReceiverForNewClauses();
             if self.unitPropagation(level).is_none() {  //backtracking (some failure)
-                let returnLevel = self.conflictAnalysis(level);
-                if returnLevel.is_none() {
+                let result = self.conflictAnalysis(level);
+                if result.is_none() {
                     return false;
                 }
-                level = returnLevel.unwrap();
-                self.backtrack(level);
+                let (newClause, level) = result.unwrap();
+                self.foundNewClause(&newClause);
+                self.backtrack(level, newClause);
                 self.unitPropagation(level);
             }
         }

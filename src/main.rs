@@ -6,6 +6,7 @@
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 #![allow(while_true)]
+#![allow(unused_must_use)]
 
 mod formula;
 mod clause;
@@ -27,6 +28,9 @@ use std::collections::HashSet;
 
 
 fn main() {
+    let formula = read("uf20-01.cnf");
+    println!("Formula: {:?}", formula);
+    //startSolver(1, read(file));
     println!("I'm a Rustaman");
 }
 
@@ -77,14 +81,12 @@ fn read(file_name: &str) -> FormulaInstance {
         if literal == 0 {
             set.insert(Clause::new(vec));
             vec = Vec::new();
-            set = HashSet::new();
         } else if literal < 0 {
             vec.push(SimpleLiteral::Negative(-literal as usize));
         } else {
             vec.push(SimpleLiteral::Positive(literal as usize));
         }
     }
-
     // return formula
     Formula::new(variables, set)
 
@@ -127,8 +129,15 @@ fn startSolver(threadAmount: usize, formula: FormulaInstance){
            if solver.sat() {
                print!("thread ({:}) said it is satisfiable!", i);
            } else {
-               print!("thread ({:}) said it is unsatisfiable!",i);
+               print!("thread ({:}) said it is unsatisfiable!", i);
            }
         }));
+    }
+    
+    /*for t in &threads {
+        t.join();
+    }*/
+    for i in 0..threadAmount {
+        threads.pop().unwrap().join();
     }
 }
