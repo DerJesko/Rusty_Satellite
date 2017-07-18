@@ -11,10 +11,18 @@ pub trait Clause {
 impl Clause for TwoPointerClause {
 
     fn new(literal_list: Vec<SimpleLiteral>) -> TwoPointerClause {
-        TwoPointerClause{
-            pointer: (0,{if literal_list.len() > 1 { 1 } else { 0 }}),
-            literals: literal_list,
-            state: ClauseState::Open
+        if literal_list.len() == 0 {
+            TwoPointerClause {
+                pointer: (0, { if literal_list.len() > 1 { 1 } else { 0 } }),
+                literals: literal_list,
+                state: ClauseState::Open
+            }
+        } else {
+            TwoPointerClause {
+                pointer: (0, { if literal_list.len() > 1 { 1 } else { 0 } }),
+                literals: literal_list,
+                state: ClauseState::Unit(0)
+            }
         }
     }
 
