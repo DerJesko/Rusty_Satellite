@@ -23,6 +23,7 @@ pub struct CdClInstance{
     learntClause: TwoPointerClause
 }
 
+#[derive (Clone, Debug, Hash, Eq, PartialEq)]
 pub enum StackElem{
     Implied(SimpleLiteral, usize, TwoPointerClause),
     Chosen(SimpleLiteral, usize)
@@ -60,14 +61,29 @@ impl CdClInstance{
     /// finds possibly a new clause and adds it to the formula
     /// returns the level to which one should backtrack (None if the formula is unsatisfiable)
     fn conflictAnalysis(&mut self, level:usize) -> Option<(TwoPointerClause,usize)>{
-        return Some((TwoPointerClause::new(vec![]), level-1));
-        /*
-        //TODO: UNSAT?
+        //return Some((TwoPointerClause::new(vec![]), level-1));
+        
+        //extract clause
         let mut clause: TwoPointerClause;
         if let FormulaState::Conflict(conflictClause) = self.formula.form_state() {
             clause = conflictClause.clone();
         } else {
             panic!("ConflictAnalysis without conflict?")
+        }
+    
+        //check if Unsatisfiable
+        let mut foundNonImplied = false;
+        for elem in &self.stack {
+            match *elem {
+                StackElem::Implied(_,_,_) => continue,
+                _ => {
+                    foundNonImplied = true;
+                    break;
+                }
+            }
+        }
+        if !foundNonImplied {
+            return None;
         }
 
         while self.numberOfAssignedVariables(&clause, level) != 1 {
@@ -89,10 +105,8 @@ impl CdClInstance{
             backLevel = self.getSecondHighestDecisionLevel(&clause);
         }
 
-        self.foundNewClause(clause);
-
-        return Some(backLevel);
-        */
+        return Some((clause, backLevel));
+        
     }
     
     /// adds the clause to the own formula and notifies the other threads that a new clause was found
@@ -159,15 +173,20 @@ impl CdClInstance{
             }
         }
     }
-/*
+
+    
     fn getImpliedLiteralAtLevel(&self, clause: &TwoPointerClause, literal: &SimpleLiteral, level: usize) -> Option<StackElem> {
         if !clause.literals.contains(&literal) {
             return None;
         }
 
-        for elem in self.stack {
-            match elem {
-                StackElem::Implied(literal, level, _) => return Some(elem),
+        for elem in &self.stack {
+            match *elem {
+                StackElem::Implied(ref lit, lvl, _) => {
+                    if (*lit == *literal && lvl==level) {
+                        return Some(elem.clone());
+                    }
+                },
                 _ => continue
             }
         }
@@ -177,11 +196,18 @@ impl CdClInstance{
     }
 
     fn assignedAt(&self, literal: &SimpleLiteral, level: usize) -> bool {
-        for elem in self.stack {
-            match elem {
-                StackElem::Implied(literal, level, _) => return true, // TODO: does this work? same literal/level as the arguments?
-                StackElem::Chosen(literal, level) => return true,
-                _ => continue
+        for elem in &self.stack {
+            match *elem {
+                StackElem::Implied(ref lit, lvl, _) => {
+                    if (*lit == *literal && lvl==level) {
+                        return true
+                    }
+                },
+                StackElem::Chosen(ref lit, lvl) => {
+                    if (*lit == *literal && lvl==level) {
+                        return true
+                    }
+                }
             }
         }
         false
@@ -189,28 +215,28 @@ impl CdClInstance{
 
     fn numberOfAssignedVariables(&self, clause: &TwoPointerClause, level: usize) -> usize {
         let mut count = 0;
-        for l in clause.literals {
+        for l in &clause.literals {
             if self.assignedAt(&l, level) {
                 count += 1;
             }
         }
         count
     }
-*/
+
     pub fn getAntecedent(elem: &StackElem) -> Option<TwoPointerClause> {
         match *elem {
             StackElem::Implied(_, _, ref antecedent) => return Some(antecedent.clone()),
             _ => return None
         }
     }
-/*
+
     fn getSecondHighestDecisionLevel(&self, clause: &TwoPointerClause) -> usize {
         let mut highest = 0;
         let mut second = 0;
         let mut d = 0;
 
-        for l in clause.literals {
-            d = self.getDecisionLevel(l);
+        for l in &clause.literals {
+            d = self.getDecisionLevel(&l);
             if d > highest {
                 highest = d;
                 second = highest;
@@ -220,16 +246,16 @@ impl CdClInstance{
         second
     }
 
-    fn getDecisionLevel(&self, literal: SimpleLiteral) -> usize {
+    fn getDecisionLevel(&self, literal: &SimpleLiteral) -> usize {
         for elem in &self.stack {
             match *elem {
-                StackElem::Chosen(lit, d) => {
-                    if lit == literal {
+                StackElem::Chosen(ref lit, d) => {
+                    if *lit == *literal {
                         return d;
                     }
                 },
-                StackElem::Implied(lit, d, _) => {
-                    if lit == literal {
+                StackElem::Implied(ref lit, d, _) => {
+                    if *lit == *literal {
                         return d;
                     }
                 }
@@ -237,7 +263,7 @@ impl CdClInstance{
         }
         panic!("You should not be here!");
     }
-*/
+
 }
 
 impl CdCl for CdClInstance{
