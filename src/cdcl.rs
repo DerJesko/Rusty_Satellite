@@ -48,7 +48,12 @@ impl CdClInstance{
     }
 
     /// chooses the variable which should be tried next (in a Choose-step)
-    fn getUnassignedVariable(&mut self) -> usize{
+    fn getUnassignedVariable(&mut self, random: &mut Rng) -> usize{
+        /*let mut order : [usize; self.formula.assignments.len()];
+        for i in 0..self.formula.assignments.len(){
+            order[i]=i;
+        }
+        random.shuffle(&mut order);*/
         for i in 0..self.formula.assignments.len(){
             if self.formula.assignments[i]==None {
                 return i;
@@ -60,16 +65,8 @@ impl CdClInstance{
     
     /// finds possibly a new clause and adds it to the formula
     /// returns the level to which one should backtrack (None if the formula is unsatisfiable)
-    fn conflictAnalysis(&mut self, level:usize) -> Option<(TwoPointerClause,usize)>{
+    fn conflictAnalysis(&mut self, mut clause: TwoPointerClause, level:usize) -> Option<(TwoPointerClause,usize)>{
         //return Some((TwoPointerClause::new(vec![]), level-1));
-        
-        //extract clause
-        let mut clause: TwoPointerClause;
-        if let FormulaState::Conflict(conflictClause) = self.formula.form_state() {
-            clause = conflictClause.clone();
-        } else {
-            panic!("ConflictAnalysis without conflict?")
-        }
     
         //check if Unsatisfiable
         let mut foundNonImplied = false;
@@ -279,14 +276,14 @@ impl CdCl for CdClInstance{
         let mut random = rand::thread_rng();
         
         //first unitPropagation
-        if self.unitPropagation(0).is_none() {
+        if !self.unitPropagation(0).is_none() {
             return false;
         }
         let mut level:usize = 0;
         
         while self.formula.hasUnassignedVars() {
             //unitPropagation already done
-            let unassigned = self.getUnassignedVariable();
+            let unassigned = self.getUnassignedVariable(&mut random);
             let chosen:SimpleLiteral;
             if random.gen() {
                 chosen = SimpleLiteral::Positive(unassigned);
@@ -298,8 +295,9 @@ impl CdCl for CdClInstance{
             level += 1;
     
             self.checkReceiverForNewClauses();
-            if self.unitPropagation(level).is_none() {  //backtracking (some failure)
-                let result = self.conflictAnalysis(level);
+            let conflict = self.unitPropagation(level);
+            if !conflict.is_none() {  //backtracking (some failure)
+                let result = self.conflictAnalysis(conflict.unwrap(), level);
                 if result.is_none() {
                     return false;
                 }
