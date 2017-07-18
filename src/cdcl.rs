@@ -16,11 +16,12 @@ pub struct CdClInstance{
     formula: FormulaInstance,
     stack: Vec<StackElem>,
     receiver: Option<Receiver<TwoPointerClause>>,
-    senders: Vec<Sender<TwoPointerClause>>
+    senders: Vec<Sender<TwoPointerClause>>,
+    learntClause: TwoPointerClause
 }
 
 pub enum StackElem{
-    Implied(SimpleLiteral, usize),
+    Implied(SimpleLiteral, usize, TwoPointerClause),
     Chosen(SimpleLiteral, usize)
 }
 
@@ -32,7 +33,7 @@ impl CdClInstance{
         while true {
             match self.formula.form_state() {
                 FormulaState::Unit(clause) => {
-                    self.stack.push(StackElem::Implied(clause.chooseUnit(&mut self.formula.assignments), level));
+                    self.stack.push(StackElem::Implied(clause.chooseUnit(&mut self.formula.assignments), level, clause));
                 },
                 FormulaState::Conflict(clause) => return Some(clause),
                 FormulaState::Else => return None
@@ -56,9 +57,36 @@ impl CdClInstance{
     /// finds possibly a new clause and adds it to the formula
     /// returns the level to which one should backtrack (None if the formula is unsatisfiable)
     fn conflictAnalysis(&mut self, level:usize) -> Option<usize>{
-        //TODO-Sanny: implement
-        //call foundNewClause()
-        return None;
+        //TODO: UNSAT?
+        let mut clause: TwoPointerClause;
+        if let FormulaState::Conflict(conflictClause) = self.formula.form_state() {
+            clause = conflictClause.clone();
+        } else {
+            panic!("ConflictAnalysis without conflict?")
+        }
+
+        while self.numberOfAssignedVariables(&clause, level) != 1 {
+            for l in clause.clone().literals {
+                match self.getImpliedLiteralAtLevel(&clause, &l, level) {
+                    Some(x) => {
+                        clause = clause.resolute(&x);
+                        break;
+                    },
+                    None => continue
+                }
+            }
+        }
+
+        let backLevel: usize;
+        if clause.literals.len() == 1 {
+            backLevel = 0;
+        } else {
+            backLevel = self.getSecondHighestDecisionLevel(&clause);
+        }
+
+        self.foundNewClause(clause);
+
+        return Some(backLevel);
     }
     
     /// adds the clause to the own formula and notifies the other threads that a new clause was found
@@ -69,7 +97,8 @@ impl CdClInstance{
                 panic!("Could not send clause!");
             }
         }
-    
+
+        self.learntClause = clause.clone();
         self.formula.add_clause(clause);  //can't be added before sending
     }
     
@@ -113,26 +142,105 @@ impl CdClInstance{
                                 self.formula.choose(variableIndex, Some(false));
                             }
                         }
-                        self.stack.push(StackElem::Implied(newLiteral, level - 1));
+                        self.stack.push(StackElem::Implied(newLiteral, level - 1, self.learntClause));
                         break;
                     } else {
                         self.formula.choose(literal.value(), None);  //unassign chosen with wrong level
                     }
                 },
-                StackElem::Implied(literal, _) => {
+                StackElem::Implied(literal, _, _) => {
                     self.formula.choose(literal.value(), None);  //unassign implied
                 }
             }
         }
     }
-    
+
+    fn getImpliedLiteralAtLevel(&self, clause: &TwoPointerClause, literal: &SimpleLiteral, level: usize) -> Option<StackElem> {
+        if !clause.literals.contains(&literal) {
+            return None;
+        }
+
+        for elem in self.stack {
+            match elem {
+                StackElem::Implied(literal, level, _) => return Some(elem),
+                _ => continue
+            }
+        }
+
+        None
+
+    }
+
+    fn assignedAt(&self, literal: &SimpleLiteral, level: usize) -> bool {
+        for elem in self.stack {
+            match elem {
+                StackElem::Implied(literal, level, _) => return true, // TODO: does this work? same literal/level as the arguments?
+                StackElem::Chosen(literal, level) => return true,
+                _ => continue
+            }
+        }
+        false
+    }
+
+    fn numberOfAssignedVariables(&self, clause: &TwoPointerClause, level: usize) -> usize {
+        let mut count = 0;
+        for l in clause.literals {
+            if self.assignedAt(&l, level) {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn getAntecedent(elem: &StackElem) -> Option<TwoPointerClause> {
+        match *elem {
+            StackElem::Implied(_, _, antecedent) => return Some(antecedent),
+            _ => return None
+        }
+    }
+
+    fn getSecondHighestDecisionLevel(&self, clause: &TwoPointerClause) -> usize {
+        let mut highest = 0;
+        let mut second = 0;
+        let mut d = 0;
+
+        for l in clause.literals {
+            d = self.getDecisionLevel(l);
+            if d > highest {
+                highest = d;
+                second = highest;
+            }
+        }
+
+        second
+    }
+
+    fn getDecisionLevel(&self, literal: SimpleLiteral) -> usize {
+        for elem in self.stack {
+            match elem {
+                StackElem::Chosen(lit, d) => {
+                    if lit == literal {
+                        return d;
+                    }
+                },
+                StackElem::Implied(lit, d, _) => {
+                    if lit == literal {
+                        return d;
+                    }
+                }
+            }
+        }
+        panic!("You should not be here!");
+    }
+
 }
 
 impl CdCl for CdClInstance{
     
     /// Constructor
     fn new(initialFormula: FormulaInstance, receiver:Option<Receiver<TwoPointerClause>>, senders:Vec<Sender<TwoPointerClause>>)->Self{
-        return CdClInstance{formula: initialFormula, stack: vec!(), receiver: receiver, senders: senders};
+        return CdClInstance{formula: initialFormula, stack: vec!(), receiver: receiver, senders: senders,
+            learntClause: TwoPointerClause::new(vec!())};
     }
 
     /// checks wether the formula is satisfiable

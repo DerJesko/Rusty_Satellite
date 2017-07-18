@@ -1,9 +1,11 @@
 use literal::{Literal, SimpleLiteral};
+use cdcl::{StackElem, CdClInstance};
 
 pub trait Clause {
     fn new(literal_list: Vec<SimpleLiteral>) -> Self;
     fn update_clause_state(&mut self, assignments: &Vec<Option<bool>>);
     fn chooseUnit(&self, assignments: &mut Vec<Option<bool>>) -> SimpleLiteral;
+    fn resolute(&mut self, &StackElem) -> TwoPointerClause;
 }
 
 impl Clause for TwoPointerClause {
@@ -89,6 +91,32 @@ impl Clause for TwoPointerClause {
                 }
             }
         } else { panic!("You should not be here") }
+    }
+
+    fn resolute(&mut self, elem: &StackElem) -> TwoPointerClause {
+        let mut clause: TwoPointerClause = CdClInstance::getAntecedent(elem).unwrap().clone();
+
+        let mut index = 0;
+        match *elem {
+            StackElem::Implied(_, x, _) => index = x,
+            _ => panic!("Elem should not be chosen!")
+        }
+
+        let pos = SimpleLiteral::Positive(index);
+        let neg = SimpleLiteral::Negative(index);
+
+        for l in &self.literals {
+            clause.literals.push(*l);
+        }
+
+        if clause.literals.contains(&pos) {
+            clause.literals.retain(|x| *x != pos);
+        } else {
+            clause.literals.retain(|x| *x != neg);
+        }
+
+        clause
+
     }
 
 }
