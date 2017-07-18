@@ -1,4 +1,4 @@
-use clause;
+use clause::{Clause, TwoPointerClause, ClauseState};
 use literal;
 use std::vec::Vec;
 use std::collections::HashSet;
@@ -9,13 +9,13 @@ pub trait Formula {
     /// This has a few assumptions, please check them before using:
     /// - the variables mention in "clauses" are in the interval [0,variable_amount)
     /// - there are no empty clauses
-    fn new(variable_amount: usize, clauses: HashSet<clause::TwoPointerClause>) -> Self;
+    fn new(variable_amount: usize, clauses: HashSet<TwoPointerClause>) -> Self;
 
     /// this method adds a clause to the end of the list
-    fn add_clause(&mut self, clause: clause::TwoPointerClause);
+    fn add_clause(&mut self, clause: TwoPointerClause);
 
     /// this method removes the clause of the index "remove_index" from the list of clauses
-    fn remove_clause(&mut self, clause_to_remove:&clause::TwoPointerClause);
+    fn remove_clause(&mut self, clause_to_remove:&TwoPointerClause);
 
     /// returns true if there are unassigned variables
     fn hasUnassignedVars(&mut self) -> bool;
@@ -39,18 +39,18 @@ pub trait Formula {
 }
 
 impl Formula for FormulaInstance {
-    fn new(variable_amount: usize, clauses: HashSet<clause::TwoPointerClause>) -> FormulaInstance {
+    fn new(variable_amount: usize, clauses: HashSet<TwoPointerClause>) -> FormulaInstance {
         FormulaInstance {
             clauses: clauses,
             assignments: vec![None; variable_amount]
         }
     }
 
-    fn add_clause(&mut self, clause: clause::TwoPointerClause) {
+    fn add_clause(&mut self, clause: TwoPointerClause) {
         self.clauses.insert(clause);
     }
 
-    fn remove_clause(&mut self, clause_to_remove: &clause::TwoPointerClause) {
+    fn remove_clause(&mut self, clause_to_remove: &TwoPointerClause) {
         self.clauses.remove(clause_to_remove);
     }
 
@@ -70,18 +70,51 @@ impl Formula for FormulaInstance {
 
 
     fn form_state(&mut self) -> FormulaState {
-        panic!("still waiting for implementation"); //TODO implement
+        let mut newSet: HashSet<TwoPointerClause> = HashSet::with_capacity(self.clauses.len());
+        let mut return_clause:TwoPointerClause = TwoPointerClause::new(vec![]);
+        let mut return_clause_is_conflict: bool = false;
+        let mut return_clause_is_unit: bool = false;
+        let mut return_clause_is: bool = false;
+        for mut clause in self.clauses.drain() {
+            clause.update_clause_state(&self.assignments);
+            match clause.state {
+                ClauseState::Open | ClauseState::Satisfied => {
+                    if !return_clause_is{
+                        return_clause = clause.clone();
+                        return_clause_is = true;
+                    }
+                },
+                ClauseState::Unit(x) => {
+                    if !return_clause_is_unit{
+                        return_clause = clause.clone();
+                        return_clause_is = true;
+                        return_clause_is_unit = true;
+                    }
+                },
+                ClauseState::Unsatisfiable => {
+                    if !return_clause_is_conflict{
+                        return_clause = clause.clone();
+                        return_clause_is = true;
+                        return_clause_is_unit = true;
+                        return_clause_is_conflict = true;
+                    }
+                }
+            }
+            newSet.insert(clause);
+        }
+        self.clauses = newSet;
+        return if return_clause_is_conflict {FormulaState::Conflict(return_clause)} else if return_clause_is_unit {FormulaState::Unit(return_clause)} else {FormulaState::Else};
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct FormulaInstance {
     pub assignments: Vec<Option<bool>>,
-    pub clauses: HashSet<clause::TwoPointerClause>,
+    pub clauses: HashSet<TwoPointerClause>,
 }
 
 pub enum FormulaState {
-    Conflict(clause::TwoPointerClause),
-    Unit(clause::TwoPointerClause),
+    Conflict(TwoPointerClause),
+    Unit(TwoPointerClause),
     Else,
 }

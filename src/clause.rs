@@ -121,7 +121,7 @@ impl Clause for TwoPointerClause {
                 return;
             }
         } else {
-            self.state = ClauseState::Filled;
+            self.state = ClauseState::Unsatisfiable;
             return;
         }
 
@@ -179,6 +179,6 @@ pub struct TwoPointerClause {
 pub enum ClauseState {
     Open,
     Unit(usize),
-    Filled,
+    Unsatisfiable,
     Satisfied
 }
