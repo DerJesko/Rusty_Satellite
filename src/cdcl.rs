@@ -24,8 +24,8 @@ pub struct CdClInstance{
 
 #[derive (Clone, Debug, Hash, Eq, PartialEq)]
 pub enum StackElem{
-    Implied(SimpleLiteral, usize, TwoPointerClause),
-    Chosen(SimpleLiteral, usize)
+    Implied(SimpleLiteral, isize, TwoPointerClause),
+    Chosen(SimpleLiteral, isize)
 }
 
 
@@ -33,7 +33,7 @@ impl CdClInstance{
     
     ///makes unitPropagation until there is a conflict (returns the clauseIndex) else it returns None
     /// else means: either every variable is assigned or you have to choose one variable
-    fn unitPropagation(&mut self, level:usize) -> Option<TwoPointerClause>{
+    fn unitPropagation(&mut self, level:isize) -> Option<TwoPointerClause>{
         while true {
             match self.formula.form_state() {
                 FormulaState::Unit(clause) => {
@@ -66,8 +66,8 @@ impl CdClInstance{
     
     /// finds possibly a new clause and adds it to the formula
     /// returns the level to which one should backtrack (None if the formula is unsatisfiable)
-    fn conflictAnalysis(&mut self, mut clause: TwoPointerClause, level:usize) -> Option<(TwoPointerClause,usize)>{
-        //return Some((TwoPointerClause::new(vec![]), level-1));
+    fn conflictAnalysis(&mut self, mut clause: TwoPointerClause, level:isize) -> Option<(TwoPointerClause,isize)>{
+        return Some((TwoPointerClause::new(vec![]), level-1));
     
         //check if Unsatisfiable
         let mut foundNonImplied = false;
@@ -85,11 +85,12 @@ impl CdClInstance{
         }
     
     
-        /*println!("{:?}",level);
-        for i in (1..self.stack.len()) {
-            println!("{:?}", self.stack[i]);
-        }*/
+        let mut counter = 0;
         while self.numberOfAssignedVariables(&clause, level) != 1 {
+            counter+=1;
+            if counter < 5 {
+                //println!("{:?}", clause);
+            }
             for l in clause.clone().literals {
                 match self.getImpliedLiteralAtLevel(&clause, &l, level) {
                     Some(x) => {
@@ -102,7 +103,7 @@ impl CdClInstance{
         }
     
 
-        let backLevel: usize;
+        let backLevel: isize;
         if clause.literals.len() == 1 {
             backLevel = 0;
         } else {
@@ -149,7 +150,7 @@ impl CdClInstance{
     }
     
     /// backtracks until the choice of the passed level
-    fn backtrack(&mut self, level:usize, learntClause:TwoPointerClause){
+    fn backtrack(&mut self, level:isize, learntClause:TwoPointerClause){
         while !self.stack.is_empty() {
             match self.stack.pop().unwrap() {
                 StackElem::Chosen(literal, currentLevel) => {
@@ -179,7 +180,7 @@ impl CdClInstance{
     }
 
     
-    fn getImpliedLiteralAtLevel(&self, clause: &TwoPointerClause, literal: &SimpleLiteral, level: usize) -> Option<StackElem> {
+    fn getImpliedLiteralAtLevel(&self, clause: &TwoPointerClause, literal: &SimpleLiteral, level: isize) -> Option<StackElem> {
         if !clause.literals.contains(&literal) {
             return None;
         }
@@ -199,7 +200,7 @@ impl CdClInstance{
 
     }
 
-    fn assignedAt(&self, literal: &SimpleLiteral, level: usize) -> bool {
+    fn assignedAt(&self, literal: &SimpleLiteral, level: isize) -> bool {
         for elem in &self.stack {
             match *elem {
                 StackElem::Implied(ref lit, lvl, _) => {
@@ -217,7 +218,7 @@ impl CdClInstance{
         false
     }
 
-    fn numberOfAssignedVariables(&self, clause: &TwoPointerClause, level: usize) -> usize {
+    fn numberOfAssignedVariables(&self, clause: &TwoPointerClause, level: isize) -> usize {
         let mut count = 0;
         for l in &clause.literals {
             if self.assignedAt(&l, level) {
@@ -234,7 +235,7 @@ impl CdClInstance{
         }
     }
 
-    fn getSecondHighestDecisionLevel(&self, clause: &TwoPointerClause) -> usize {
+    fn getSecondHighestDecisionLevel(&self, clause: &TwoPointerClause) -> isize {
         let mut highest = 0;
         let mut second = 0;
         let mut d = 0;
@@ -250,7 +251,7 @@ impl CdClInstance{
         second
     }
 
-    fn getDecisionLevel(&self, literal: &SimpleLiteral) -> usize {
+    fn getDecisionLevel(&self, literal: &SimpleLiteral) -> isize {
         for elem in &self.stack {
             match *elem {
                 StackElem::Chosen(ref lit, d) => {
@@ -283,15 +284,13 @@ impl CdCl for CdClInstance{
         
         //first unitPropagation
     
-        println!("{:?}", self.formula.form_state());
-        if !self.unitPropagation(0).is_none(){
-            println!("UNSAT");
+        //println!("{:?}", self.formula.form_state());
+        let mut level:isize = -1;
+        if !self.unitPropagation(level).is_none(){
+            //println!("UNSAT");
             return false;
         }
-        println!("{:?}", self.stack);
-        println!("Hi");
         
-        let mut level:usize = 0;
         
         while self.formula.hasUnassignedVars() {
             //unitPropagation already done
@@ -299,12 +298,16 @@ impl CdCl for CdClInstance{
             let chosen:SimpleLiteral;
             if random.gen() {
                 chosen = SimpleLiteral::Negative(unassigned);  //TODO: wieder positive machen
+                self.formula.choose(chosen.value(), Some(false));
             } else {
                 chosen = SimpleLiteral::Negative(unassigned);
+                self.formula.choose(chosen.value(), Some(false));
             }
-            self.formula.choose(chosen.value(), Some(true));
-            self.stack.push(StackElem::Chosen(chosen, level));
             level += 1;
+            self.stack.push(StackElem::Chosen(chosen, level));
+            println!("{:?}", level);
+    
+    
     
             self.checkReceiverForNewClauses();
             let conflict = self.unitPropagation(level);
@@ -313,11 +316,24 @@ impl CdCl for CdClInstance{
                 if result.is_none() {
                     return false;
                 }
-                let (newClause, level) = result.unwrap();
+                let (newClause, backtrackLevel) = result.unwrap();
+                level = backtrackLevel-1;
                 self.foundNewClause(&newClause);
-                self.backtrack(level, newClause);
+    
+                for i in (0..self.stack.len()) {
+                    println!("{:?}", self.stack[i]);
+                }
+                println!("Backtrack-Level: {:?}", backtrackLevel);
+                self.backtrack(backtrackLevel, newClause);
+                for i in (0..self.stack.len()) {
+                    println!("{:?}", self.stack[i]);
+                }
                 self.unitPropagation(level);
             }
+        }
+    
+        for i in (1..self.stack.len()) {
+            println!("{:?}", self.stack[i]);
         }
 
         return true;

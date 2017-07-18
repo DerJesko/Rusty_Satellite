@@ -28,11 +28,11 @@ use std::collections::HashSet;
 
 
 fn main() {
-    let formula = read("unsat.cnf");
+    //let formula = read("unsat.cnf");
     //let formula = read("simple.cnf");
     //let formula = read("backtrack.cnf");
     //let formula = read("uf20-01.cnf");
-    //let formula = read("uuf50-0100.cnf");
+    let formula = read("uuf50-0100.cnf");
     //println!("Formula: {:?}", formula);
     startSolver(1, formula);
     println!("I'm a Rustaman");
@@ -86,9 +86,15 @@ fn read(file_name: &str) -> FormulaInstance {
             set.insert(Clause::new(vec));
             vec = Vec::new();
         } else if literal < 0 {
-            vec.push(SimpleLiteral::Negative(-literal as usize - 1));
+            let lit = SimpleLiteral::Negative(-literal as usize -1);
+            if !vec.contains(&lit) {
+                vec.push(lit);
+            }
         } else {
-            vec.push(SimpleLiteral::Positive(literal as usize - 1));
+            let lit = SimpleLiteral::Positive(literal as usize - 1);
+            if !vec.contains(&lit) {
+                vec.push(lit);
+            }
         }
     }
     // return formula

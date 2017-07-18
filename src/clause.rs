@@ -186,9 +186,11 @@ impl Clause for TwoPointerClause {
         //let neg = SimpleLiteral::Negative(index);
 
         for l in &self.literals {
-            clause.literals.push(l.clone());
+            if !clause.literals.contains(&l) {
+                clause.literals.push(l.clone());
+            }
         }
-    
+        
         clause.literals.retain(|ref x| x.value() != index);
         //clause.literals.retain(|&ref x| *x != neg);  //TODO: funktioniert das retain?
 
