@@ -148,19 +148,19 @@ impl Clause for TwoPointerClause {
 
         let mut index = 0;
         match *elem {
-            StackElem::Implied(_, x, _) => index = x,
+            StackElem::Implied(ref x, _, _) => index = x.value(),
             _ => panic!("Elem should not be chosen!")
         }
 
-        let pos = SimpleLiteral::Positive(index);
-        let neg = SimpleLiteral::Negative(index);
+        //let pos = SimpleLiteral::Positive(index);
+        //let neg = SimpleLiteral::Negative(index);
 
         for l in &self.literals {
             clause.literals.push(l.clone());
         }
     
-        clause.literals.retain(|x| *x != pos);
-        clause.literals.retain(|x| *x != neg);  //TODO: funktioniert das retain?
+        clause.literals.retain(|ref x| x.value() != index);
+        //clause.literals.retain(|&ref x| *x != neg);  //TODO: funktioniert das retain?
 
         clause
 

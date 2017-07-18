@@ -113,6 +113,8 @@ pub struct FormulaInstance {
     pub clauses: HashSet<TwoPointerClause>,
 }
 
+
+#[derive(Debug, Clone)]
 pub enum FormulaState {
     Conflict(TwoPointerClause),
     Unit(TwoPointerClause),

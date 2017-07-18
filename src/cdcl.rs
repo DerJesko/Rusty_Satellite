@@ -33,6 +33,7 @@ pub enum StackElem{
 impl CdClInstance{
     
     ///makes unitPropagation until there is a conflict (returns the clauseIndex) else it returns None
+    /// else means: either every variable is assigned or you have to choose one variable
     fn unitPropagation(&mut self, level:usize) -> Option<TwoPointerClause>{
         while true {
             match self.formula.form_state() {
@@ -54,6 +55,7 @@ impl CdClInstance{
             order[i]=i;
         }
         random.shuffle(&mut order);*/
+        
         for i in 0..self.formula.assignments.len(){
             if self.formula.assignments[i]==None {
                 return i;
@@ -82,7 +84,12 @@ impl CdClInstance{
         if !foundNonImplied {
             return None;
         }
-
+    
+    
+        /*println!("{:?}",level);
+        for i in (1..self.stack.len()) {
+            println!("{:?}", self.stack[i]);
+        }*/
         while self.numberOfAssignedVariables(&clause, level) != 1 {
             for l in clause.clone().literals {
                 match self.getImpliedLiteralAtLevel(&clause, &l, level) {
@@ -94,6 +101,7 @@ impl CdClInstance{
                 }
             }
         }
+    
 
         let backLevel: usize;
         if clause.literals.len() == 1 {
@@ -180,7 +188,7 @@ impl CdClInstance{
         for elem in &self.stack {
             match *elem {
                 StackElem::Implied(ref lit, lvl, _) => {
-                    if (*lit == *literal && lvl==level) {
+                    if (lit.value() == literal.value() && lvl==level) {
                         return Some(elem.clone());
                     }
                 },
@@ -196,12 +204,12 @@ impl CdClInstance{
         for elem in &self.stack {
             match *elem {
                 StackElem::Implied(ref lit, lvl, _) => {
-                    if (*lit == *literal && lvl==level) {
+                    if (lit.value() == literal.value() && lvl==level) {
                         return true
                     }
                 },
                 StackElem::Chosen(ref lit, lvl) => {
-                    if (*lit == *literal && lvl==level) {
+                    if (lit.value() == literal.value() && lvl==level) {
                         return true
                     }
                 }
@@ -247,12 +255,12 @@ impl CdClInstance{
         for elem in &self.stack {
             match *elem {
                 StackElem::Chosen(ref lit, d) => {
-                    if *lit == *literal {
+                    if lit.value() == literal.value() {
                         return d;
                     }
                 },
                 StackElem::Implied(ref lit, d, _) => {
-                    if *lit == *literal {
+                    if lit.value() == literal.value() {
                         return d;
                     }
                 }
@@ -276,9 +284,15 @@ impl CdCl for CdClInstance{
         let mut random = rand::thread_rng();
         
         //first unitPropagation
-        if !self.unitPropagation(0).is_none() {
+    
+        println!("{:?}", self.formula.form_state());
+        if !self.unitPropagation(0).is_none(){
+            println!("UNSAT");
             return false;
         }
+        println!("{:?}", self.stack);
+        println!("Hi");
+        
         let mut level:usize = 0;
         
         while self.formula.hasUnassignedVars() {
@@ -286,7 +300,7 @@ impl CdCl for CdClInstance{
             let unassigned = self.getUnassignedVariable(&mut random);
             let chosen:SimpleLiteral;
             if random.gen() {
-                chosen = SimpleLiteral::Positive(unassigned);
+                chosen = SimpleLiteral::Negative(unassigned);  //TODO: wieder positive machen
             } else {
                 chosen = SimpleLiteral::Negative(unassigned);
             }
