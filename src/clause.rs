@@ -1,5 +1,6 @@
 use literal::{Literal, SimpleLiteral};
 use cdcl::{StackElem, CdClInstance};
+use std::fmt;
 
 pub trait Clause {
     fn new(literal_list: Vec<SimpleLiteral>) -> Self;
@@ -195,7 +196,13 @@ impl Clause for TwoPointerClause {
 
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+impl fmt::Debug for TwoPointerClause {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Clause {{s:{:?}, l:{:?}}}", self.state ,self.literals)
+    }
+}
+
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub struct TwoPointerClause {
     pub literals: Vec<SimpleLiteral>,
     pub state: ClauseState,
