@@ -4,9 +4,7 @@ use literal::*;
 use std::sync::mpsc::{Sender, Receiver};
 use std::vec::Vec;
 use self::rand::{Rng,ThreadRng};
-use self::rand::{Rng,thread_rng,ThreadRng};
 use std::cmp;
-use std::collections::HashSet;
 
 extern crate rand;
 
@@ -121,13 +119,16 @@ impl CdClInstance{
         let mut highest = -1;
         let mut secondHighest = -1;
         for lit in &clause.literals {
-            let level = lit.value() as isize;
+            let level = self.getLevel(lit.value()) as isize;
             if (level > highest){
                 secondHighest = highest;
                 highest = level;
             } else {
                 secondHighest = cmp::max(secondHighest, level);
             }
+        }
+        if (secondHighest == -1){
+            return 0;
         }
         if (highest != secondHighest) {
             return secondHighest+1;
@@ -153,8 +154,8 @@ impl CdClInstance{
                 }
             }
         }
-        panic!("literal not found in stack");
-        return 0;
+        //panic!("literal not found in stack");
+        return -1;
     }
     
     

@@ -1,5 +1,5 @@
 use literal::{Literal, SimpleLiteral};
-use cdcl::{StackElem, CdClInstance};
+use cdcl::StackElem;
 use std::fmt;
 
 pub trait Clause {
@@ -167,8 +167,8 @@ impl Clause for TwoPointerClause {
         } else { panic!("You should not be here") }
     }
 
-        let mut clause: TwoPointerClause;// = CdClInstance::getAntecedent(elem).unwrap();
     fn resolute(&self, elem: &StackElem) -> TwoPointerClause {
+        let mut clause: TwoPointerClause;// = CdClInstance::getAntecedent(elem).unwrap();
 
         let mut index = 0;
         match *elem {
