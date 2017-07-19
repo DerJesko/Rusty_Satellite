@@ -6,7 +6,7 @@ pub trait Clause {
     fn new(literal_list: Vec<SimpleLiteral>) -> Self;
     fn update_clause_state(&mut self, assignments: &Vec<Option<bool>>);
     fn chooseUnit(&self, assignments: &mut Vec<Option<bool>>) -> SimpleLiteral;
-    fn resolute(&mut self, elem: &StackElem) -> TwoPointerClause;
+    fn resolute(&self, elem: &StackElem) -> TwoPointerClause;
 }
 
 impl Clause for TwoPointerClause {
@@ -68,7 +68,7 @@ impl Clause for TwoPointerClause {
                                 Some(assigned_bool) => {
                                     if assigned_bool {
                                         self.state = ClauseState::Satisfied;
-                                        pointer_1 = i;
+                                        self.pointer= (i, pointer_2);
                                         return;
                                     }
                                 }
@@ -80,7 +80,7 @@ impl Clause for TwoPointerClause {
                                 Some(assigned_bool) => {
                                     if !assigned_bool {
                                         self.state = ClauseState::Satisfied;
-                                        pointer_1 = i;
+                                        self.pointer = (i, pointer_2);
                                         return;
                                     }
                                 }
@@ -107,7 +107,7 @@ impl Clause for TwoPointerClause {
                                 Some(assigned_bool) => {
                                     if assigned_bool {
                                         self.state = ClauseState::Satisfied;
-                                        pointer_2 = i;
+                                        self.pointer = (pointer_1,i);
                                         return;
                                     }
                                 }
@@ -119,7 +119,7 @@ impl Clause for TwoPointerClause {
                                 Some(assigned_bool) => {
                                     if !assigned_bool {
                                         self.state = ClauseState::Satisfied;
-                                        pointer_2 = i;
+                                        self.pointer = (pointer_1,i);
                                         return;
                                     }
                                 }
@@ -150,8 +150,6 @@ impl Clause for TwoPointerClause {
             self.state = ClauseState::Unsatisfiable;
             return;
         }
-
-        panic!();
     }
 
     fn chooseUnit(&self, assignments: &mut Vec<Option<bool>>) -> SimpleLiteral {
@@ -169,8 +167,8 @@ impl Clause for TwoPointerClause {
         } else { panic!("You should not be here") }
     }
 
-    fn resolute(&mut self, elem: &StackElem) -> TwoPointerClause {
         let mut clause: TwoPointerClause;// = CdClInstance::getAntecedent(elem).unwrap();
+    fn resolute(&self, elem: &StackElem) -> TwoPointerClause {
 
         let mut index = 0;
         match *elem {

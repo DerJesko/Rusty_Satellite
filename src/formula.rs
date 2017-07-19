@@ -1,5 +1,4 @@
 use clause::{Clause, TwoPointerClause, ClauseState};
-use literal;
 use std::vec::Vec;
 use std::collections::HashSet;
 
@@ -85,7 +84,7 @@ impl Formula for FormulaInstance {
                         return_clause_is = true;
                     }
                 },
-                ClauseState::Unit(x) => {
+                ClauseState::Unit(_) => {
                     if !return_clause_is_unit{
                         return_clause = clause.clone();
                         return_clause_is = true;

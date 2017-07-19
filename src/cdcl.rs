@@ -2,8 +2,8 @@ use formula::*;
 use clause::*;
 use literal::*;
 use std::sync::mpsc::{Sender, Receiver};
-use std::sync::mpsc;
 use std::vec::Vec;
+use self::rand::{Rng,ThreadRng};
 use self::rand::{Rng,thread_rng,ThreadRng};
 use std::cmp;
 use std::collections::HashSet;
@@ -36,7 +36,7 @@ impl CdClInstance{
     ///makes unitPropagation until there is a conflict (returns the clauseIndex) else it returns None
     /// else means: either every variable is assigned or you have to choose one variable
     fn unitPropagation(&mut self, level:isize) -> Option<TwoPointerClause>{
-        while true {
+        loop {
             match self.formula.form_state() {
                 FormulaState::Unit(clause) => {
                     self.stack.push(StackElem::Implied(clause.chooseUnit(&mut self.formula.assignments), level, clause));
@@ -45,8 +45,6 @@ impl CdClInstance{
                 FormulaState::Else => return None
             }
         }
-        panic!("Fatal error in unit Propagation!");
-        return None;
     }
 
     /// chooses the variable which should be tried next (in a Choose-step)
@@ -209,7 +207,7 @@ impl CdClInstance{
                     self.formula.add_clause(clause);
                     foundFormula = true;
                 },
-                Err(err) => {
+                Err(_) => {
                     return foundFormula;
                 }
             }
