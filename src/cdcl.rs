@@ -5,6 +5,8 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 use std::vec::Vec;
 use self::rand::{Rng,thread_rng,ThreadRng};
+use std::cmp;
+use std::collections::HashSet;
 
 extern crate rand;
 
@@ -68,7 +70,7 @@ impl CdClInstance{
     fn conflictAnalysis(&mut self, mut clause: TwoPointerClause, level:isize) -> Option<(TwoPointerClause,isize)>{
         
     
-        //check if Unsatisfiable
+        //check if unsatisfiable
         let mut foundNonImplied = false;
         for elem in &self.stack {
             match *elem {
@@ -83,55 +85,101 @@ impl CdClInstance{
             return None;
         }
         //return Some((clause, level));  //only DPLL
-    
-    
+        
+        
+        //iterate trough all literals l in clause
+            //look in stack for l
+            //--if l.level == level && Implied--
+                //a=antacedent
+                //clause = clause+antacedent
         let mut counter = 0;
-        let mut implied : Option<StackElem> = None;
-
-        for l in clause.clone().literals {
-            implied = self.getImpliedLiteralAtLevel(&clause, &l, level);
-            if !implied.is_none() {
-                break;
+        loop {
+            counter+=1;
+            if counter > 200{  //inperformant
+                //println!("skipped");
+                return Some((clause,level));
             }
-        }
-
-        while !implied.is_none() {
-            println!("   +   {:?}", implied);
-            clause = clause.resolute(&implied.clone().unwrap());
-            for l in clause.clone().literals {
-                implied = self.getImpliedLiteralAtLevel(&clause, &l, level);
-                if !implied.is_none() {
+            let mut stackElem = None;
+            for l in &clause.literals {
+                stackElem = self.findInStack(l.value(), level);
+                if !stackElem.is_none(){
                     break;
                 }
             }
-        }
-        /*while self.numberOfAssignedVariables(&clause, level) != 1 {
-            counter+=1;
-            if counter < 5 {
-                //println!("{:?}", clause);
+            if let Some(elem) = stackElem {
+                clause = clause.resolute(&elem);
+            } else {
+                break;
             }
-            for l in clause.clone().literals {
-                match self.getImpliedLiteralAtLevel(&clause, &l, level) {
-                    Some(x) => {
-                        clause = clause.resolute(&x);
-                        break;
-                    },
-                    None => continue
-                }
-            }
-        }*/
-    
-
-        let backLevel: isize;
-        if clause.literals.len() == 1 {
-            backLevel = 0;
-        } else {
-            backLevel = self.getSecondHighestDecisionLevel(&clause);
         }
-
-        return Some((clause, backLevel));
+        
+        let returnLevel = self.secondHighestLevel(&clause);
+        return Some((clause, returnLevel));
         
     }
+    
+    
+    fn secondHighestLevel(&self, clause: &TwoPointerClause) -> isize{
+        let mut highest = -1;
+        let mut secondHighest = -1;
+        for lit in &clause.literals {
+            let level = lit.value() as isize;
+            if (level > highest){
+                secondHighest = highest;
+                highest = level;
+            } else {
+                secondHighest = cmp::max(secondHighest, level);
+            }
+        }
+        if (highest != secondHighest) {
+            return secondHighest+1;
+        } else{
+            return secondHighest;
+        }
+    }
+    
+    
+    /// finds the decision level of an literal in the stack
+    fn getLevel(&self, literalValue:usize) -> isize {
+        for i in (0..self.stack.len()).rev() {
+            match(self.stack[i]){
+                StackElem::Implied(ref lit, level, _) => {
+                    if lit.value() == literalValue {
+                        return level;
+                    }
+                }
+                StackElem::Chosen(ref lit, level) => {
+                    if lit.value() == literalValue {
+                        return level;
+                    }
+                }
+            }
+        }
+        panic!("literal not found in stack");
+        return 0;
+    }
+    
+    
+    /// finds the literal with the level in the Stack
+    fn findInStack(&self, literalValue: usize, level: isize) -> Option<StackElem>{
+        for i in (0..self.stack.len()).rev() {
+            match(self.stack[i]){
+                StackElem::Implied(ref lit, lvl, _) => {
+                    if lvl != level {
+                        return None;
+                    }
+                    if lit.value() == literalValue {
+                        return Some(self.stack[i].clone());
+                    }
+                }
+                StackElem::Chosen(_,_) => {
+                    return None;
+                }
+            }
+        }
+        return None;
+    }
+    
     
     /// adds the clause to the own formula and notifies the other threads that a new clause was found
     fn foundNewClause(&mut self, clausee:&TwoPointerClause){
@@ -198,103 +246,6 @@ impl CdClInstance{
                 }
             }
         }
-    }
-
-    
-    fn getImpliedLiteralAtLevel(&self, clause: &TwoPointerClause, literal: &SimpleLiteral, level: isize) -> Option<StackElem> {
-        if !clause.literals.contains(&literal) {
-            return None;
-        }
-
-        for elem in &self.stack {
-            match *elem {
-                StackElem::Implied(ref lit, lvl, _) => {
-                    if (lit.value() == literal.value() && lvl==level) {
-                        return Some(elem.clone());
-                    }
-                },
-                _ => continue
-            }
-        }
-
-        None
-
-    }
-
-    fn assignedAt(&self, literal: &SimpleLiteral, level: isize) -> bool {
-        for elem in &self.stack {
-            match *elem {
-                StackElem::Implied(ref lit, lvl, _) => {
-                    if (lit.value() == literal.value() && lvl==level) {
-                        return true
-                    }
-                },
-                StackElem::Chosen(ref lit, lvl) => {
-                    if (lit.value() == literal.value() && lvl==level) {
-                        return true
-                    }
-                }
-            }
-        }
-        false
-    }
-
-    fn numberOfAssignedVariables(&self, clause: &TwoPointerClause, level: isize) -> usize {
-        let mut count = 0;
-        for l in &clause.literals {
-            if self.assignedAt(&l, level) {
-                count += 1;
-            }
-        }
-        count
-    }
-
-    pub fn getAntecedent(elem: &StackElem) -> Option<TwoPointerClause> {
-        match *elem {
-            StackElem::Implied(_, _, ref antecedent) => return Some(antecedent.clone()),
-            _ => return None
-        }
-    }
-
-    fn getSecondHighestDecisionLevel(&self, clause: &TwoPointerClause) -> isize {
-        let mut highest = 0;
-        let mut second = 0;
-        let mut d = Some(0);
-
-        let mut klaus = clause.clone();
-        klaus.update_clause_state(&self.formula.assignments);
-        println!("{:?}", klaus);
-        for l in &clause.literals {
-            d = self.getDecisionLevel(&l);
-            if !d.is_none() && d.unwrap() > highest {
-                highest = d.unwrap();
-                second = highest;
-            }
-        }
-
-        second
-    }
-
-    fn getDecisionLevel(&self, literal: &SimpleLiteral) -> Option<isize> {
-        for elem in &self.stack {
-            match *elem {
-                StackElem::Chosen(ref lit, d) => {
-                    if lit.value() == literal.value() {
-                        return Some(d);
-                    }
-                },
-                StackElem::Implied(ref lit, d, _) => {
-                    if lit.value() == literal.value() {
-                        return Some(d);
-                    }
-                }
-            }
-        }
-        for i in (1..self.stack.len()) {
-            println!("{:?}", self.stack[i]);
-        }
-        panic!("You should not be here!"); // TODO: return 0?
-        None
     }
 
 }

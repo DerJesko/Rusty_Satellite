@@ -170,11 +170,14 @@ impl Clause for TwoPointerClause {
     }
 
     fn resolute(&mut self, elem: &StackElem) -> TwoPointerClause {
-        let mut clause: TwoPointerClause = CdClInstance::getAntecedent(elem).unwrap();
+        let mut clause: TwoPointerClause;// = CdClInstance::getAntecedent(elem).unwrap();
 
         let mut index = 0;
         match *elem {
-            StackElem::Implied(ref x, _, _) => index = x.value(),
+            StackElem::Implied(ref x, _, ref cl) => {
+                index = x.value();
+                clause = cl.clone();
+            },
             _ => panic!("Elem should not be chosen!")
         }
 
@@ -187,7 +190,7 @@ impl Clause for TwoPointerClause {
         clause.literals.retain(|ref x| x.value() != index);
         clause.pointer = (0,clause.literals.len()-1);
         
-        print!("Baue {:?}", clause);
+        //print!("Baue {:?}", clause);
         clause
 
     }
