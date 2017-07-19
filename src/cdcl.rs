@@ -85,7 +85,26 @@ impl CdClInstance{
     
     
         let mut counter = 0;
-        while self.numberOfAssignedVariables(&clause, level) != 1 {
+        let mut implied : Option<StackElem> = None;
+
+        for l in clause.clone().literals {
+            implied = self.getImpliedLiteralAtLevel(&clause, &l, level);
+            if !implied.is_none() {
+                break;
+            }
+        }
+
+        while !implied.is_none() {
+            println!("   +   {:?}", implied);
+            clause = clause.resolute(&implied.clone().unwrap());
+            for l in clause.clone().literals {
+                implied = self.getImpliedLiteralAtLevel(&clause, &l, level);
+                if !implied.is_none() {
+                    break;
+                }
+            }
+        }
+        /*while self.numberOfAssignedVariables(&clause, level) != 1 {
             counter+=1;
             if counter < 5 {
                 //println!("{:?}", clause);
@@ -99,7 +118,7 @@ impl CdClInstance{
                     None => continue
                 }
             }
-        }
+        }*/
     
 
         let backLevel: isize;
@@ -168,10 +187,12 @@ impl CdClInstance{
                         self.stack.push(StackElem::Implied(newLiteral, level - 1, learntClause));
                         break;
                     } else {
+                        println!("Remove {}", literal.value());
                         self.formula.choose(literal.value(), None);  //unassign chosen with wrong level
                     }
                 },
                 StackElem::Implied(literal, _, _) => {
+                    println!("Remove {}", literal.value());
                     self.formula.choose(literal.value(), None);  //unassign implied
                 }
             }
@@ -237,12 +258,15 @@ impl CdClInstance{
     fn getSecondHighestDecisionLevel(&self, clause: &TwoPointerClause) -> isize {
         let mut highest = 0;
         let mut second = 0;
-        let mut d = 0;
+        let mut d = Some(0);
 
+        let mut klaus = clause.clone();
+        klaus.update_clause_state(&self.formula.assignments);
+        println!("{:?}", klaus);
         for l in &clause.literals {
             d = self.getDecisionLevel(&l);
-            if d > highest {
-                highest = d;
+            if !d.is_none() && d.unwrap() > highest {
+                highest = d.unwrap();
                 second = highest;
             }
         }
@@ -250,22 +274,26 @@ impl CdClInstance{
         second
     }
 
-    fn getDecisionLevel(&self, literal: &SimpleLiteral) -> isize {
+    fn getDecisionLevel(&self, literal: &SimpleLiteral) -> Option<isize> {
         for elem in &self.stack {
             match *elem {
                 StackElem::Chosen(ref lit, d) => {
                     if lit.value() == literal.value() {
-                        return d;
+                        return Some(d);
                     }
                 },
                 StackElem::Implied(ref lit, d, _) => {
                     if lit.value() == literal.value() {
-                        return d;
+                        return Some(d);
                     }
                 }
             }
         }
-        panic!("You should not be here!");
+        for i in (1..self.stack.len()) {
+            println!("{:?}", self.stack[i]);
+        }
+        panic!("You should not be here!"); // TODO: return 0?
+        None
     }
 
 }
@@ -304,7 +332,7 @@ impl CdCl for CdClInstance{
             }
             level += 1;
             self.stack.push(StackElem::Chosen(chosen, level));
-            println!("{:?}", level);
+            //println!("{:?}", level);
     
     
     
@@ -319,14 +347,14 @@ impl CdCl for CdClInstance{
                 level = backtrackLevel-1;
                 self.foundNewClause(&newClause);
     
-                for i in (0..self.stack.len()) {
+                /*for i in (0..self.stack.len()) {
                     println!("{:?}", self.stack[i]);
                 }
-                println!("Backtrack-Level: {:?}", backtrackLevel);
+                println!("Backtrack-Level: {:?}", backtrackLevel);*/
                 self.backtrack(backtrackLevel, newClause);
-                for i in (0..self.stack.len()) {
+                /*for i in (0..self.stack.len()) {
                     println!("{:?}", self.stack[i]);
-                }
+                }*/
                 conflict = self.unitPropagation(level);
             }
         }

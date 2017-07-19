@@ -189,7 +189,7 @@ impl Clause for TwoPointerClause {
         
         clause.literals.retain(|ref x| x.value() != index);
         //clause.literals.retain(|&ref x| *x != neg);  //TODO: funktioniert das retain?
-
+        print!("Baue {:?}", clause);
         clause
 
     }

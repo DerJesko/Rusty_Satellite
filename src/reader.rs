@@ -1,12 +1,12 @@
-use formula;
-use clause;
-use literal;
+use formula::*;
+use clause::*;
+use literal::*;
 use std::fs::File;
 use std::io::{Read, BufRead, BufReader};
 use std::collections::HashSet;
 
 
-fn read(file_name: str) -> TwoPointerClause {
+fn read(file_name: str) -> Formula {
 
     // open file we want to parse
     let f = File::open(file_name).expect("Failed to open file!");
