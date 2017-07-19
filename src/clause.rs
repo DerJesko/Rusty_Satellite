@@ -178,9 +178,6 @@ impl Clause for TwoPointerClause {
             _ => panic!("Elem should not be chosen!")
         }
 
-        //let pos = SimpleLiteral::Positive(index);
-        //let neg = SimpleLiteral::Negative(index);
-
         for l in &self.literals {
             if !clause.literals.contains(&l) {
                 clause.literals.push(l.clone());
@@ -188,7 +185,8 @@ impl Clause for TwoPointerClause {
         }
         
         clause.literals.retain(|ref x| x.value() != index);
-        //clause.literals.retain(|&ref x| *x != neg);  //TODO: funktioniert das retain?
+        clause.pointer = (0,clause.literals.len()-1);
+        
         print!("Baue {:?}", clause);
         clause
 

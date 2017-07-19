@@ -26,6 +26,7 @@ use std::fs::File;
 use std::io::{Read, BufRead, BufReader};
 use std::collections::HashSet;
 use std::env;
+use std::process;
 
 
 fn main() {
@@ -34,8 +35,8 @@ fn main() {
     //let formula = read("simple.cnf");
     //let formula = read("backtrack.cnf");
     //let formula = read("uf20-01.cnf");
-    //let formula = read("uuf50-0100.cnf");
-    let formula = read("satPy5-29.cnf");
+    let formula = read("uuf50-0100.cnf");
+    //let formula = read("satPy5-29.cnf");
     //println!("Formula: {:?}", formula);
     let file = if args.len() > 1 {read(&args[1])} else { formula };
     startSolver(1, file);
@@ -155,12 +156,14 @@ fn startSolver(threadAmount: usize, formula: FormulaInstance){
     for i in 0..threadAmount {
         let mut solver = solvers.pop().unwrap();
         threads.push(thread::spawn(move || {
-           if solver.sat() {
+            if solver.sat() {
                println!("{:?}", solver.formula.assignments);
                println!("thread ({:}) said it is satisfiable!", i);
-           } else {
+               process::exit(1);
+            } else {
                println!("thread ({:}) said it is unsatisfiable!", i);
-           }
+               process::exit(0);
+            }
         }));
     }
     

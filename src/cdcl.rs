@@ -53,7 +53,7 @@ impl CdClInstance{
         for i in 0..self.formula.assignments.len(){
             order[i]=i;
         }
-        //random.shuffle(&mut order);
+        random.shuffle(&mut order);
         for i in order{
             if self.formula.assignments[i]==None {
                 return i;
@@ -82,7 +82,7 @@ impl CdClInstance{
         if !foundNonImplied {
             return None;
         }
-        return Some((clause, level));
+        //return Some((clause, level));  //only DPLL
     
     
         let mut counter = 0;
@@ -188,12 +188,12 @@ impl CdClInstance{
                         self.stack.push(StackElem::Implied(newLiteral, level - 1, learntClause));
                         break;
                     } else {
-                        println!("Remove {}", literal.value());
+                        //println!("Remove {}", literal.value());
                         self.formula.choose(literal.value(), None);  //unassign chosen with wrong level
                     }
                 },
                 StackElem::Implied(literal, _, _) => {
-                    println!("Remove {}", literal.value());
+                    //println!("Remove {}", literal.value());
                     self.formula.choose(literal.value(), None);  //unassign implied
                 }
             }
@@ -325,8 +325,8 @@ impl CdCl for CdClInstance{
             let unassigned = self.getUnassignedVariable(&mut random);
             let chosen:SimpleLiteral;
             if random.gen() {
-                chosen = SimpleLiteral::Negative(unassigned);  //TODO: wieder positive machen
-                self.formula.choose(chosen.value(), Some(false));
+                chosen = SimpleLiteral::Positive(unassigned);  //TODO: wieder positive machen
+                self.formula.choose(chosen.value(), Some(true));
             } else {
                 chosen = SimpleLiteral::Negative(unassigned);
                 self.formula.choose(chosen.value(), Some(false));
@@ -348,16 +348,16 @@ impl CdCl for CdClInstance{
                 level = backtrackLevel-1;
                 self.foundNewClause(&newClause);
     
-                for i in (0..self.stack.len()) {
+                /*for i in (0..self.stack.len()) {
                     println!("  {:?}", self.stack[i]);
                 }
                 println!("----------------------------------------------\nBacktrack-Level: {:?}\n----------------------------------------------", backtrackLevel);
-                self.backtrack(backtrackLevel, newClause);
-                for i in (0..self.stack.len()) {
+                */self.backtrack(backtrackLevel, newClause);
+                /*for i in (0..self.stack.len()) {
                     println!("  {:?}", self.stack[i]);
                 }
                 println!("----------------------------------------------\nChoosing...\n----------------------------------------------");
-                conflict = self.unitPropagation(level);
+                */conflict = self.unitPropagation(level);
             }
         }
     
