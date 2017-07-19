@@ -1,4 +1,5 @@
 use std::vec::Vec;
+use std::fmt;
 
 pub trait Literal {
     fn value(&self) -> usize;
@@ -26,7 +27,16 @@ impl Literal for SimpleLiteral {
     }
 }
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+impl fmt::Debug for SimpleLiteral {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            SimpleLiteral::Positive(literal_index) => write!(f, "{}", literal_index),
+            SimpleLiteral::Negative(literal_index) => write!(f, "{}", literal_index)
+        }
+    }
+}
+
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub enum SimpleLiteral {
     Positive(usize),
     Negative(usize),
