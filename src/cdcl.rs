@@ -4,7 +4,7 @@ use literal::*;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 use std::vec::Vec;
-use self::rand::Rng;
+use self::rand::{Rng,thread_rng,ThreadRng};
 
 extern crate rand;
 
@@ -48,14 +48,13 @@ impl CdClInstance{
     }
 
     /// chooses the variable which should be tried next (in a Choose-step)
-    fn getUnassignedVariable(&mut self, random: &mut Rng) -> usize{
-        /*let mut order : [usize; self.formula.assignments.len()];
+    fn getUnassignedVariable(&mut self, random: &mut ThreadRng) -> usize{
+        let mut order = vec![0; self.formula.assignments.len()];
         for i in 0..self.formula.assignments.len(){
             order[i]=i;
         }
-        random.shuffle(&mut order);*/
-        
-        for i in 0..self.formula.assignments.len(){
+        //random.shuffle(&mut order);
+        for i in order{
             if self.formula.assignments[i]==None {
                 return i;
             }
