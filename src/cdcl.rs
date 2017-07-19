@@ -67,7 +67,7 @@ impl CdClInstance{
     /// finds possibly a new clause and adds it to the formula
     /// returns the level to which one should backtrack (None if the formula is unsatisfiable)
     fn conflictAnalysis(&mut self, mut clause: TwoPointerClause, level:isize) -> Option<(TwoPointerClause,isize)>{
-        return Some((TwoPointerClause::new(vec![]), level-1));
+        //return Some((TwoPointerClause::new(vec![]), level-1));
     
         //check if Unsatisfiable
         let mut foundNonImplied = false;
@@ -310,8 +310,8 @@ impl CdCl for CdClInstance{
     
     
             self.checkReceiverForNewClauses();
-            let conflict = self.unitPropagation(level);
-            if !conflict.is_none() {  //backtracking (some failure)
+            let mut conflict = self.unitPropagation(level);
+            while !conflict.is_none() {  //backtracking (some failure)
                 let result = self.conflictAnalysis(conflict.unwrap(), level);
                 if result.is_none() {
                     return false;
@@ -328,13 +328,14 @@ impl CdCl for CdClInstance{
                 for i in (0..self.stack.len()) {
                     println!("{:?}", self.stack[i]);
                 }
-                self.unitPropagation(level);
+                conflict = self.unitPropagation(level);
             }
         }
     
         for i in (1..self.stack.len()) {
             println!("{:?}", self.stack[i]);
         }
+        println!("{:?}", self.formula.form_state());
 
         return true;
     }
