@@ -30,15 +30,30 @@ use std::env;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let file = &args[1];
     //let formula = read("unsat.cnf");
     //let formula = read("simple.cnf");
     //let formula = read("backtrack.cnf");
     //let formula = read("uf20-01.cnf");
     let formula = read("uuf50-0100.cnf");
     //println!("Formula: {:?}", formula);
-    startSolver(1, formula);
+    let file = if args.len() > 1 {read(&args[1])} else { formula };
+    startSolver(1, file);
     println!("I'm a Rustaman");
+    /*
+    let test_assignment = vec![
+        Some(true),
+        Some(false),
+        Some(true),
+        Some(false)
+    ];
+    let mut test_clause = clause::TwoPointerClause{
+        literals: vec![literal::SimpleLiteral::Negative(0), literal::SimpleLiteral::Positive(1), literal::SimpleLiteral::Negative(2), literal::SimpleLiteral::Positive(3)],
+        state: clause::ClauseState::Satisfied,
+        pointer: (2,3)
+    };
+    test_clause.update_clause_state(&test_assignment);
+    println!("{:?}", test_clause)
+    */
 }
 
 fn read(file_name: &str) -> FormulaInstance {

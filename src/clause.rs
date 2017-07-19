@@ -5,7 +5,7 @@ pub trait Clause {
     fn new(literal_list: Vec<SimpleLiteral>) -> Self;
     fn update_clause_state(&mut self, assignments: &Vec<Option<bool>>);
     fn chooseUnit(&self, assignments: &mut Vec<Option<bool>>) -> SimpleLiteral;
-    fn resolute(&mut self, &StackElem) -> TwoPointerClause;
+    fn resolute(&mut self, elem: &StackElem) -> TwoPointerClause;
 }
 
 impl Clause for TwoPointerClause {
@@ -20,11 +20,6 @@ impl Clause for TwoPointerClause {
     }
 
     fn update_clause_state(&mut self, assignments: &Vec<Option<bool>>) {
-
-        if let ClauseState::Satisfied = self.state {
-            return
-        }
-
         let (mut pointer_1, mut pointer_2) = self.pointer;
         if self.literals[pointer_1].is_satisfied(assignments) || self.literals[pointer_2].is_satisfied(assignments) {
             self.state = ClauseState::Satisfied;
@@ -204,7 +199,7 @@ impl Clause for TwoPointerClause {
 pub struct TwoPointerClause {
     pub literals: Vec<SimpleLiteral>,
     pub state: ClauseState,
-    pointer: (usize,usize)
+    pub pointer: (usize,usize)
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
