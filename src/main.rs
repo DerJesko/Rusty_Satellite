@@ -34,7 +34,8 @@ fn main() {
     //let formula = read("simple.cnf");
     //let formula = read("backtrack.cnf");
     //let formula = read("uf20-01.cnf");
-    let formula = read("uuf50-0100.cnf");
+    //let formula = read("uuf50-0100.cnf");
+    let formula = read("satPy5-29.cnf");
     //println!("Formula: {:?}", formula);
     let file = if args.len() > 1 {read(&args[1])} else { formula };
     startSolver(1, file);

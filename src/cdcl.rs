@@ -66,7 +66,7 @@ impl CdClInstance{
     /// finds possibly a new clause and adds it to the formula
     /// returns the level to which one should backtrack (None if the formula is unsatisfiable)
     fn conflictAnalysis(&mut self, mut clause: TwoPointerClause, level:isize) -> Option<(TwoPointerClause,isize)>{
-        //return Some((TwoPointerClause::new(vec![]), level-1));
+        
     
         //check if Unsatisfiable
         let mut foundNonImplied = false;
@@ -82,6 +82,7 @@ impl CdClInstance{
         if !foundNonImplied {
             return None;
         }
+        return Some((clause, level));
     
     
         let mut counter = 0;
@@ -347,19 +348,20 @@ impl CdCl for CdClInstance{
                 level = backtrackLevel-1;
                 self.foundNewClause(&newClause);
     
-                /*for i in (0..self.stack.len()) {
-                    println!("{:?}", self.stack[i]);
+                for i in (0..self.stack.len()) {
+                    println!("  {:?}", self.stack[i]);
                 }
-                println!("Backtrack-Level: {:?}", backtrackLevel);*/
+                println!("----------------------------------------------\nBacktrack-Level: {:?}\n----------------------------------------------", backtrackLevel);
                 self.backtrack(backtrackLevel, newClause);
-                /*for i in (0..self.stack.len()) {
-                    println!("{:?}", self.stack[i]);
-                }*/
+                for i in (0..self.stack.len()) {
+                    println!("  {:?}", self.stack[i]);
+                }
+                println!("----------------------------------------------\nChoosing...\n----------------------------------------------");
                 conflict = self.unitPropagation(level);
             }
         }
     
-        for i in (1..self.stack.len()) {
+        for i in (0..self.stack.len()) {
             println!("{:?}", self.stack[i]);
         }
         println!("{:?}", self.formula.form_state());
