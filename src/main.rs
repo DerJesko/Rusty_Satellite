@@ -25,9 +25,12 @@ use std::thread::*;
 use std::fs::File;
 use std::io::{Read, BufRead, BufReader};
 use std::collections::HashSet;
+use std::env;
 
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    let file = &args[1];
     //let formula = read("unsat.cnf");
     //let formula = read("simple.cnf");
     //let formula = read("backtrack.cnf");
