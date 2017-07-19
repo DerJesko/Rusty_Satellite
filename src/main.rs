@@ -1,12 +1,8 @@
-#![allow(unused_variables)]
-#![allow(unused_assignments)]
 #![allow(non_snake_case)]
-#![allow(dead_code)]
 #![allow(unreachable_code)]
 #![allow(unused_parens)]
-#![allow(unused_imports)]
-#![allow(while_true)]
 #![allow(unused_must_use)]
+#![allow(unused_assignments)]
 
 mod formula;
 mod clause;
@@ -17,11 +13,9 @@ use formula::*;
 use clause::*;
 use literal::*;
 use cdcl::*;
-use std::sync::mpsc::{Sender, Receiver};
-use std::sync::mpsc;
+use std::sync::mpsc::{Sender, Receiver, channel};
 use std::vec::Vec;
-use std::thread;
-use std::thread::*;
+use std::thread::{spawn, JoinHandle};
 use std::fs::File;
 use std::io::{Read, BufRead, BufReader};
 use std::collections::HashSet;
@@ -130,8 +124,8 @@ fn startSolver(threadAmount: usize, formula: FormulaInstance){
     let mut receivers: Vec<Receiver<TwoPointerClause>> = Vec::new();
     let mut threads: Vec<JoinHandle<_>> = Vec::new();
     
-    for i in 0..threadAmount {
-        let (sender, receiver) = mpsc::channel();  //create channels
+    for _ in 0..threadAmount {
+        let (sender, receiver) = channel();  //create channels
         senders.push(sender);
         receivers.push(receiver);
     }
@@ -155,7 +149,7 @@ fn startSolver(threadAmount: usize, formula: FormulaInstance){
     
     for i in 0..threadAmount {
         let mut solver = solvers.pop().unwrap();
-        threads.push(thread::spawn(move || {
+        threads.push(spawn(move || {
             if solver.sat() {
                println!("{:?}", solver.formula.assignments);
                println!("thread ({:}) said it is satisfiable!", i);
@@ -170,7 +164,7 @@ fn startSolver(threadAmount: usize, formula: FormulaInstance){
     /*for t in &threads {
         t.join();
     }*/
-    for i in 0..threadAmount {
+    for _ in 0..threadAmount {
         threads.pop().unwrap().join();
     }
 }
