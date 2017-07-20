@@ -33,7 +33,7 @@ fn main() {
     //let formula = read("satPy5-29.cnf");
     //println!("Formula: {:?}", formula);
     let file = if args.len() > 1 {read(&args[1])} else { formula };
-    startSolver(4, file);
+    startSolver(1, file);
     println!("I'm a Rustaman");
     /*
     let test_assignment = vec![
@@ -150,13 +150,15 @@ fn startSolver(threadAmount: usize, formula: FormulaInstance){
     for i in 0..threadAmount {
         let mut solver = solvers.pop().unwrap();
         threads.push(spawn(move || {
-            if solver.sat() {
-               println!("{:?}", solver.formula.assignments);
-               println!("thread ({:}) said it is satisfiable!", i);
-               process::exit(1);
-            } else {
-               println!("thread ({:}) said it is unsatisfiable!", i);
-               process::exit(0);
+            if let Some(result) = solver.sat() {
+                if result {
+                    println!("{:?}", solver.formula.assignments);
+                    println!("thread ({:}) said it is satisfiable!", i);
+                    process::exit(1);
+                } else {
+                    println!("thread ({:}) said it is unsatisfiable!", i);
+                    //process::exit(0);
+                }
             }
         }));
     }

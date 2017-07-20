@@ -11,7 +11,7 @@ extern crate rand;
 
 pub trait CdCl{
     fn new(initialFormula: FormulaInstance, receiver:Option<Receiver<TwoPointerClause>>, senders:Vec<Sender<TwoPointerClause>>)->Self;
-    fn sat(&mut self)->bool;
+    fn sat(&mut self)->Option<bool>;
 }
 
 
@@ -63,7 +63,8 @@ impl CdClInstance{
     
     /// finds possibly a new clause and adds it to the formula
     /// returns the level to which one should backtrack (None if the formula is unsatisfiable)
-    fn conflictAnalysis(&mut self, mut clause: TwoPointerClause, level:isize) -> Option<(TwoPointerClause,isize)>{
+    /// the returned boolean is true iff unusual backtracking should be applied
+    fn conflictAnalysis(&mut self, mut clause: TwoPointerClause, level:isize) -> Option<(TwoPointerClause, isize)>{
         
     
         //check if unsatisfiable
@@ -91,8 +92,15 @@ impl CdClInstance{
         let mut counter = 0;
         loop {
             counter+=1;
-            if counter > 200{  //inperformant
+            if counter > 1980{
+                println!("{:?}", clause);
+            }
+            if counter > 2000{  //inperformant
                 //println!("skipped");
+                for i in (0..self.stack.len()) {
+                    println!("{:?}", self.stack[i]);
+                }
+                panic!("skipped");
                 return Some((clause,level));
             }
             let mut stackElem = None;
@@ -109,13 +117,6 @@ impl CdClInstance{
             }
         }
         
-        let returnLevel = self.secondHighestLevel(&clause);
-        return Some((clause, returnLevel));
-        
-    }
-    
-    
-    fn secondHighestLevel(&self, clause: &TwoPointerClause) -> isize{
         let mut highest = -1;
         let mut secondHighest = -1;
         for lit in &clause.literals {
@@ -127,14 +128,14 @@ impl CdClInstance{
                 secondHighest = cmp::max(secondHighest, level);
             }
         }
-        if (secondHighest == -1){
-            return 0;
+        
+        if (highest == secondHighest){
+            return Some((clause, -1));
+            //dürfte nicht passieren(da mit -1 initialisiert das schon abfängt)
+        } else {
+            return Some((clause, secondHighest+1));
         }
-        if (highest != secondHighest) {
-            return secondHighest+1;
-        } else{
-            return secondHighest;
-        }
+        
     }
     
     
@@ -154,7 +155,10 @@ impl CdClInstance{
                 }
             }
         }
-        //panic!("literal not found in stack");
+        for i in (0..self.stack.len()) {
+            println!("{:?}", self.stack[i]);
+        }
+        panic!("literal not found in stack");
         return -1;
     }
     
@@ -181,15 +185,17 @@ impl CdClInstance{
     
     
     /// adds the clause to the own formula and notifies the other threads that a new clause was found
-    fn foundNewClause(&mut self, clausee:&TwoPointerClause){
+    /// returns if one of the other Threads has terminated
+    fn foundNewClause(&mut self, clausee:&TwoPointerClause) -> bool{
     
         for sender in &self.senders {
             if sender.send(clausee.clone()).is_err() {
-                panic!("Could not send clause!");
+                return true;
             }
         }
 
         self.formula.add_clause(clausee.clone());  //can't be added before sending
+        return false;
     }
     
     /// checks if the channels received new clauses from other threads and adds them
@@ -216,10 +222,17 @@ impl CdClInstance{
     }
     
     /// backtracks until the choice of the passed level
-    fn backtrack(&mut self, level:isize, learntClause:TwoPointerClause){
+    fn backtrack(&mut self, level:isize, mut learntClause:TwoPointerClause){
         while !self.stack.is_empty() {
             match self.stack.pop().unwrap() {
                 StackElem::Chosen(literal, currentLevel) => {
+                    self.formula.choose(literal.value(), None);
+                    if currentLevel == level {  //not lessEqual
+                        learntClause.update_clause_state(&self.formula.assignments);  //schade, dass ich das brauch
+                        self.stack.push(StackElem::Implied(learntClause.chooseUnit(&mut self.formula.assignments), level-1, learntClause));
+                        return;
+                    }
+                    /*
                     if currentLevel == level {            //backtrack until right level is found
                         let newLiteral:SimpleLiteral;
                         match literal {
@@ -235,16 +248,16 @@ impl CdClInstance{
                         self.stack.push(StackElem::Implied(newLiteral, level - 1, learntClause));
                         break;
                     } else {
-                        //println!("Remove {}", literal.value());
                         self.formula.choose(literal.value(), None);  //unassign chosen with wrong level
                     }
+                    */
                 },
                 StackElem::Implied(literal, _, _) => {
-                    //println!("Remove {}", literal.value());
                     self.formula.choose(literal.value(), None);  //unassign implied
                 }
             }
         }
+        return;  //may happen!
     }
 
 }
@@ -257,7 +270,7 @@ impl CdCl for CdClInstance{
     }
 
     /// checks wether the formula is satisfiable
-    fn sat(&mut self)->bool{
+    fn sat(&mut self)->Option<bool>{
         let mut random = rand::thread_rng();
         
         //first unitPropagation
@@ -266,7 +279,7 @@ impl CdCl for CdClInstance{
         let mut level:isize = -1;
         if !self.unitPropagation(level).is_none(){
             //println!("UNSAT");
-            return false;
+            return Some(false);
         }
         
         
@@ -292,11 +305,13 @@ impl CdCl for CdClInstance{
             while !conflict.is_none() {  //backtracking (some failure)
                 let result = self.conflictAnalysis(conflict.unwrap(), level);
                 if result.is_none() {
-                    return false;
+                    return Some(false);
                 }
                 let (newClause, backtrackLevel) = result.unwrap();
                 level = backtrackLevel-1;
-                self.foundNewClause(&newClause);
+                if self.foundNewClause(&newClause){  //other thread terminated
+                    return None;
+                }
     
                 /*for i in (0..self.stack.len()) {
                     println!("  {:?}", self.stack[i]);
@@ -316,7 +331,7 @@ impl CdCl for CdClInstance{
         }
         println!("{:?}", self.formula.form_state());
 
-        return true;
+        return Some(true);
     }
 
 }

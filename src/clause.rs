@@ -164,7 +164,12 @@ impl Clause for TwoPointerClause {
                     return SimpleLiteral::Negative(variable_index);
                 }
             }
-        } else { panic!("You should not be here") }
+        } else {
+            println!("{:?}", assignments);
+            println!("{:?}", self);
+            
+            panic!("Clause is not Unit!");
+        }
     }
 
     fn resolute(&self, elem: &StackElem) -> TwoPointerClause {
