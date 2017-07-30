@@ -92,10 +92,10 @@ impl CdClInstance{
         let mut counter = 0;
         loop {
             counter+=1;
-            if counter > 1980{
+            if counter > 19980{
                 println!("{:?}", clause);
             }
-            if counter > 2000{  //inperformant
+            if counter > 20000{  //inperformant
                 //println!("skipped");
                 for i in (0..self.stack.len()) {
                     println!("{:?}", self.stack[i]);
@@ -187,7 +187,7 @@ impl CdClInstance{
     /// adds the clause to the own formula and notifies the other threads that a new clause was found
     /// returns if one of the other Threads has terminated
     fn foundNewClause(&mut self, clausee:&TwoPointerClause) -> bool{
-    
+        //println!("{:?}", clausee);
         for sender in &self.senders {
             if sender.send(clausee.clone()).is_err() {
                 return true;
@@ -222,18 +222,20 @@ impl CdClInstance{
     }
     
     /// backtracks until the choice of the passed level
-    fn backtrack(&mut self, level:isize, mut learntClause:TwoPointerClause){
+    fn backtrack(&mut self, level:isize, learntClause:Option<TwoPointerClause>){
         while !self.stack.is_empty() {
             match self.stack.pop().unwrap() {
                 StackElem::Chosen(literal, currentLevel) => {
                     self.formula.choose(literal.value(), None);
                     if currentLevel == level {  //not lessEqual
-                        learntClause.update_clause_state(&self.formula.assignments);  //schade, dass ich das brauch
-                        self.stack.push(StackElem::Implied(learntClause.chooseUnit(&mut self.formula.assignments), level-1, learntClause));
+                        if let Some(mut clause) = learntClause {
+                            clause.update_clause_state(&self.formula.assignments);  //schade, dass ich das brauch
+                            self.stack.push(StackElem::Implied(clause.chooseUnit(&mut self.formula.assignments), level - 1, clause));
+                        }
                         return;
                     }
-                    /*
-                    if currentLevel == level {            //backtrack until right level is found
+                        /*
+                        //backtrack until right level is found
                         let newLiteral:SimpleLiteral;
                         match literal {
                             SimpleLiteral::Negative(variableIndex) => {
@@ -300,7 +302,7 @@ impl CdCl for CdClInstance{
     
     
     
-            self.checkReceiverForNewClauses();
+            //clause-create-Phase
             let mut conflict = self.unitPropagation(level);
             while !conflict.is_none() {  //backtracking (some failure)
                 let result = self.conflictAnalysis(conflict.unwrap(), level);
@@ -317,20 +319,45 @@ impl CdCl for CdClInstance{
                     println!("  {:?}", self.stack[i]);
                 }
                 println!("----------------------------------------------\nBacktrack-Level: {:?}\n----------------------------------------------", backtrackLevel);
-                */self.backtrack(backtrackLevel, newClause);
+                */self.backtrack(backtrackLevel, Some(newClause));
                 /*for i in (0..self.stack.len()) {
                     println!("  {:?}", self.stack[i]);
                 }
                 println!("----------------------------------------------\nChoosing...\n----------------------------------------------");
                 */conflict = self.unitPropagation(level);
             }
+    
+            //recieve-clause-Phase
+            if self.checkReceiverForNewClauses() {  //tatsächlich empfangen
+                conflict = self.unitPropagation(level);
+                while !conflict.is_none() {
+                    if level <= -1 {
+                        return Some(false);
+                    }
+                    //backtracking (some failure)
+                    /*println!("{:?}", conflict);
+                    for i in (0..self.stack.len()) {
+                        println!("  {:?}", self.stack[i]);
+                    }
+                    println!("----------------------------------------------\nBacktrack-Level: {:?}\n----------------------------------------------", level);
+                    */self.backtrack(level, None);
+                    level = level - 1;
+                    /*for i in (0..self.stack.len()) {
+                        println!("  {:?}", self.stack[i]);
+                    }
+                    println!("----------------------------------------------\nChoosing...\n----------------------------------------------");
+                    */conflict = self.unitPropagation(level);
+                }
+            }
+            
         }
     
+        /*
         for i in (0..self.stack.len()) {
             println!("{:?}", self.stack[i]);
         }
         println!("{:?}", self.formula.form_state());
-
+        */
         return Some(true);
     }
 
