@@ -28,24 +28,20 @@ pub fn read(file_name: &str) -> FormulaInstance {
         }
     }
     
-    // TODO: handle panics
     // get #variables and #clauses
     let vec = problem_line.split_whitespace().collect::<Vec<&str>>();
     let variables = vec[2].parse().expect("Converting #variables failed!");
-    // let clauses = vec[3].parse().expect("Converting #clauses failed!");
     
     // read rest of file
     let mut rest = String::new();
     reader.read_to_string(&mut rest).expect("Failed to read the rest of the file!");
     
-    // TODO: handle panics
     // parse clauses
     let split = rest.split_whitespace().collect::<Vec<&str>>();
     let mut vec = Vec::new();
     let mut set = HashSet::new();
     let mut literal = 0;
     for var in split {
-        // TODO: why is there even a '%' in the file? have to check and fix that
         if var == "%" {
             break;
         }

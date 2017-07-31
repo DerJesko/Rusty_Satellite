@@ -81,40 +81,23 @@ impl CdClInstance{
         if !foundNonImplied {
             return None;
         }
-        //return Some((clause, level));  //only DPLL
-        
-        
-        //iterate trough all literals l in clause
-            //look in stack for l
-            //--if l.level == level && Implied--
-                //a=antacedent
-                //clause = clause+antacedent
-        let mut counter = 0;
-        loop {
-            counter+=1;
-            if counter > 19980{
-                println!("{:?}", clause);
-            }
-            if counter > 20000{  //inperformant
-                //println!("skipped");
-                for i in (0..self.stack.len()) {
-                    println!("{:?}", self.stack[i]);
-                }
-                panic!("skipped");
-                return Some((clause,level));
-            }
+
+        while self.getNumberOfAssignedLiterals(&clause, level) != 1 {
             let mut stackElem = None;
-            for l in &clause.literals {
-                stackElem = self.findInStack(l.value(), level);
-                if !stackElem.is_none(){
+                for l in &clause.literals {
+                    stackElem = self.findInStack(l.value(), level);
+                    if stackElem.is_some() {
+                        match stackElem {
+                            Some(StackElem::Implied(_,_,_)) => break,
+                            _ => continue
+                        }
+                    }
+                }
+                if let Some(elem) = stackElem {
+                    clause = clause.resolute(&elem);
+                } else {
                     break;
                 }
-            }
-            if let Some(elem) = stackElem {
-                clause = clause.resolute(&elem);
-            } else {
-                break;
-            }
         }
         
         let mut highest = -1;
@@ -137,7 +120,20 @@ impl CdClInstance{
         }
         
     }
-    
+
+
+    fn getNumberOfAssignedLiterals(&self, clause: &TwoPointerClause, level: isize) -> isize {
+
+        let mut sum = 0;
+        for lit in &clause.literals {
+            if self.findInStack(lit.value(), level).is_some() {
+                sum += 1;
+            }
+        }
+
+        sum
+
+    }
     
     /// finds the decision level of an literal in the stack
     fn getLevel(&self, literalValue:usize) -> isize {
@@ -175,8 +171,14 @@ impl CdClInstance{
                         return Some(self.stack[i].clone());
                     }
                 }
-                StackElem::Chosen(_,_) => {
-                    return None;
+                StackElem::Chosen(ref lit, lvl) => {
+                    //return None;
+                    if lvl != level {
+                        return None;
+                    }
+                    if lit.value() == literalValue {
+                        return Some(self.stack[i].clone());
+                    }
                 }
             }
         }
