@@ -23,12 +23,7 @@ use std::process;
 fn main() {
     let args: Vec<String> = env::args().collect();
     
-    //let defaultFile = "unsat.cnf";
-    //let defaultFile = "simple.cnf";
-    //let defaultFile = "backtrack.cnf";
-    //let defaultFile = "uf20-01.cnf";
-    //let defaultFile = "unsatPy5-29.cnf";
-    let defaultFile = "uuf50-0100.cnf";
+    let defaultFile = "samples/simple.cnf";
     let formula = if args.len() > 1 {reader::read(&args[1])} else { reader::read(defaultFile) };
     if startSolver(4, formula) {
         process::exit(1);
